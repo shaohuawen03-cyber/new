@@ -77,6 +77,30 @@ export function activate(context: vscode.ExtensionContext): void {
     })
   );
 
+  // 一键把当前 ssh:// 主机设为默认终端: Agent/反重力 的 shell 命令将跑在远端
+  context.subscriptions.push(
+    vscode.commands.registerCommand('sshRemoteLite.setDefaultTerminal', async () => {
+      const cfg = currentSshConfig();
+      if (!cfg) {
+        vscode.window.showWarningMessage('请先打开 ssh:// 远程工作区再执行此命令');
+        return;
+      }
+      const name = `SSH: ${makeAuthority(cfg)}`;
+      const key =
+        process.platform === 'win32'
+          ? 'windows'
+          : process.platform === 'darwin'
+          ? 'osx'
+          : 'linux';
+      await vscode.workspace
+        .getConfiguration('terminal.integrated')
+        .update(`defaultProfile.${key}`, name, vscode.ConfigurationTarget.Global);
+      vscode.window.showInformationMessage(
+        `默认终端已设为 ${name},Agent 的命令将发送到远端服务器`
+      );
+    })
+  );
+
   // 打开 ssh:// 工作区时自动开一个 SSH 终端(设置 sshRemoteLite.autoOpenTerminal 可关)
   const cfg = currentSshConfig();
   const autoOpen = vscode.workspace

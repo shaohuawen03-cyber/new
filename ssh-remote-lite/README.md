@@ -63,6 +63,20 @@ SSH 服务器**(ssh2 Server + 内存文件系统 SFTP + echo shell),不需要真
    (老服务器只有终端时,这就是你的主战场)。
 5. 系统 ssh 位置不对时,用设置 `sshRemoteLite.sshPath` 指定可执行文件路径。
 
+## 让 Agent(反重力 / Copilot 等)在远端分析和改代码
+
+- **读/分析/保存代码**: Agent 通过 `ssh://` 文件系统读写远端文件,天然可用。
+  注意:要让文件系统连接不弹密码框,必须在 `sshRemoteLite.hosts` 里预配
+  `password` 或 `privateKeyPath`(Agent 不会替你输密码)。
+- **让 Agent 的 shell 命令跑在远端**: 在远程工作区执行命令
+  `SSH Remote Lite: 把 SSH 设为默认终端 (Agent 命令跑在远端)`,
+  之后 Agent 开的终端默认就是 ssh 会话,`grep`/构建/跑脚本都在老服务器上执行。
+- **建议配置免密登录**,否则 Agent 每次开终端都要等密码:
+  本地 `ssh-keygen` 后把公钥加入服务器 `~/.ssh/authorized_keys`
+  (或直接在 `sshRemoteLite.hosts` 写 `privateKeyPath`)。
+- 局限: 语言服务器级智能(跳转定义/重构)仍在本地;搜索大目录依赖
+  FileSystemProvider,速度一般,可让 Agent 直接在远端终端里用 `grep -rn`。
+
 ### 预配置凭据(可选)
 
 在 `settings.json`:
