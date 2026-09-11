@@ -99,3 +99,8 @@ export function releaseConnection(authority: string): void {
     connections.delete(authority);
   }
 }
+
+/** 供终端/外部使用: 解析当前 authority 的完整配置(合并 settings 预配置) */
+export function getConfigForAuthority(authority: string): HostConfig {
+  return resolveConfig(authority);
+}

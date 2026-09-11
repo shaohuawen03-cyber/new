@@ -16,7 +16,7 @@ vscode-server 的老服务器(如 CentOS 7、glibc < 2.28 的系统)。
 | 能力 | 实现方式 | 效果 |
 | --- | --- | --- |
 | 浏览/编辑远端文件 | `vscode.workspace.registerFileSystemProvider('ssh', ...)` + SFTP | 资源管理器直接打开 `ssh://user@host:port/路径`,文件即开即存 |
-| 交互式终端 | `vscode.window.createTerminal({ pty })` + ssh2 shell | 等价于 xshell/mobaxterm 的终端,支持窗口大小同步 |
+| 交互式终端 | IDE 原生进程终端,直接运行系统 `ssh`(与 PowerShell 终端同机制) | 等价于 xshell/mobaxterm 的终端;密码在终端里输入,或走预配置私钥 |
 
 ## 兼容性
 
@@ -53,12 +53,15 @@ SSH 服务器**(ssh2 Server + 内存文件系统 SFTP + echo shell),不需要真
 1. `Ctrl+Shift+P` → `SSH Remote Lite: 连接到主机...` → 输入
    `root@10.0.0.5:22/root/project`,回车后新窗口以远程目录作为工作区打开。
 2. **打开 ssh:// 工作区会自动开一个 SSH 终端**(默认开启,可用设置
-   `sshRemoteLite.autoOpenTerminal` 关闭)。
+   `sshRemoteLite.autoOpenTerminal` 关闭)。终端由系统 `ssh` 提供,
+   首次连接输入 `yes` 接受主机密钥,密码直接在终端里输入;
+   也可在 `sshRemoteLite.hosts` 预配 `privateKeyPath` 实现免密。
 3. 终端面板 `+` 旁边的 `∨` 下拉里会出现 **`SSH: user@host:port`** 配置,
    也可以 `Terminal: Select Default Profile` 把它设为默认终端。
    注意:直接点 `+` 新建的仍是**本地**终端,这是 IDE 本身行为,不是插件 bug。
 4. 也可以用命令 `SSH Remote Lite: 新建 SSH 终端` 手动开终端
    (老服务器只有终端时,这就是你的主战场)。
+5. 系统 ssh 位置不对时,用设置 `sshRemoteLite.sshPath` 指定可执行文件路径。
 
 ### 预配置凭据(可选)
 
