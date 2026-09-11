@@ -1,0 +1,102 @@
+# 科研 + 办公 自托管栈
+# 默认 profile: ollama + open-webui + n8n + mlflow
+# --profile kb  : RAGFlow 知识库
+# --profile gpu : vLLM 批量推理
+name: research-office-stack
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ro-ollama
+    ports:
+      - "${OLLAMA_PORT:-11434}:11434"
+    volumes:
+      - ollama:/root/.ollama
+    restart: unless-stopped
+
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: ro-open-webui
+    depends_on: [ollama]
+    ports:
+      - "${WEBUI_PORT:-3080}:8080"
+    environment:
+      OLLAMA_BASE_URL: http://ollama:11434
+      ENABLE_RAG_WEB_SEARCH: "true"
+      WEBUI_AUTH: "${WEBUI_AUTH:-true}"
+    volumes:
+      - open-webui:/app/backend/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    container_name: ro-n8n
+    ports:
+      - "${N8N_PORT:-5678}:5678"
+    environment:
+      N8N_SECURE_COOKIE: "false"
+      GENERIC_TIMEZONE: "${TZ:-Asia/Shanghai}"
+      N8N_DIAGNOSTICS_ENABLED: "false"
+    volumes:
+      - n8n:/home/node/.n8n
+      - ./data:/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:latest
+    container_name: ro-mlflow
+    command: >
+      mlflow server --host 0.0.0.0 --port 5000
+      --backend-store-uri sqlite:////mlruns/mlflow.db
+      --default-artifact-root /mlruns/artifacts
+    ports:
+      - "${MLFLOW_PORT:-5000}:5000"
+    volumes:
+      - mlflow:/mlruns
+    restart: unless-stopped
+
+  # ---------- profile: kb ----------
+  ragflow:
+    profiles: ["kb"]
+    image: infiniflow/ragflow:latest
+    container_name: ro-ragflow
+    ports:
+      - "${RAGFLOW_PORT:-9380}:9380"
+      - "${RAGFLOW_HTTP_PORT:-8081}:80"
+    volumes:
+      - ragflow:/ragflow/data
+      - ./data:/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+  # ---------- profile: gpu ----------
+  vllm:
+    profiles: ["gpu"]
+    image: vllm/vllm-openai:latest
+    container_name: ro-vllm
+    command: ["--model", "${VLLM_MODEL:-Qwen/Qwen2.5-7B-Instruct}", "--port", "8000"]
+    ports:
+      - "${VLLM_PORT:-8000}:8000"
+    volumes:
+      - hf:/root/.cache/huggingface
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+
+volumes:
+  ollama:
+  open-webui:
+  n8n:
+  mlflow:
+  ragflow:
+  hf:

@@ -1,0 +1,6 @@
+stack/.env
+stack/data/
+data/
+__pycache__/
+*.pyc
+.pipeline_state.json
