@@ -273,6 +273,12 @@ export function startTestServer(user = 'testuser', password = 'testpass'): Promi
             stream.write(d); // echo
           });
         });
+        session.on('exec', (acceptExec, _rejectExec, info) => {
+          const stream = acceptExec();
+          stream.write(`EXEC:${info.command}\n`);
+          stream.exit(0);
+          stream.close();
+        });
         session.on('sftp', (acceptSftp) => {
           wireSftp(acceptSftp(), mem);
         });

@@ -94,3 +94,36 @@ export function call<T>(
     fn((err, result) => (err ? reject(err) : resolve(result as T)));
   });
 }
+
+/** 在远端执行一条命令, 返回退出码与输出 */
+export function execCommand(
+  client: Client,
+  command: string
+): Promise<{ code: number | null; stdout: string; stderr: string }> {
+  return new Promise((resolve, reject) => {
+    client.exec(command, (err, stream) => {
+      if (err) {
+        return reject(err);
+      }
+      let stdout = '';
+      let stderr = '';
+      stream.on('data', (d: Buffer) => (stdout += d.toString('utf8')));
+      stream.stderr.on('data', (d: Buffer) => (stderr += d.toString('utf8')));
+      stream.on('close', (code: number) => {
+        stream.close();
+        resolve({ code: code ?? null, stdout, stderr });
+      });
+      stream.end();
+    });
+  });
+}
+
+/** 生成"把公钥写入远端 authorized_keys"的 shell 命令(base64 传输, 避免转义问题) */
+export function buildAuthorizeKeyCommand(pubKey: string): string {
+  const b64 = Buffer.from(`${pubKey.trim()}\n`).toString('base64');
+  return (
+    'mkdir -p ~/.ssh && chmod 700 ~/.ssh && ' +
+    `echo ${b64} | base64 -d >> ~/.ssh/authorized_keys && ` +
+    'chmod 600 ~/.ssh/authorized_keys'
+  );
+}

@@ -1,7 +1,16 @@
 import * as vscode from 'vscode';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
 import { SshFileSystemProvider } from './fs';
 import { sshTerminalOptions, openSshTerminal } from './terminal';
-import { getConfigForAuthority, makeAuthority, HostConfig } from './ssh';
+import {
+  getConfigForAuthority,
+  getConnection,
+  makeAuthority,
+  HostConfig,
+} from './ssh';
+import { execCommand, buildAuthorizeKeyCommand } from './core';
 
 /** 当前工作区如果是 ssh://, 返回其完整主机配置 */
 function currentSshConfig(): HostConfig | undefined {
@@ -74,6 +83,45 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     vscode.commands.registerCommand('sshRemoteLite.connectConfigured', async (cfg: HostConfig) => {
       await openSshTerminal(cfg);
+    })
+  );
+
+  // 一键部署免密登录: 把本机公钥写入远端 authorized_keys(走插件 SSH 通道, 密码在弹窗输入)
+  context.subscriptions.push(
+    vscode.commands.registerCommand('sshRemoteLite.uploadPublicKey', async () => {
+      const cfg = currentSshConfig();
+      const authority = cfg ? makeAuthority(cfg) : undefined;
+      if (!authority) {
+        vscode.window.showWarningMessage('请先打开 ssh:// 远程工作区再执行此命令');
+        return;
+      }
+      const candidates = [
+        path.join(os.homedir(), '.ssh', 'id_ed25519.pub'),
+        path.join(os.homedir(), '.ssh', 'id_rsa.pub'),
+      ];
+      const pubPath = candidates.find((p) => fs.existsSync(p));
+      if (!pubPath) {
+        vscode.window.showErrorMessage(
+          '未找到本机公钥。先在本地终端运行 ssh-keygen -t rsa(一路回车)生成,再执行此命令'
+        );
+        return;
+      }
+      const pub = fs.readFileSync(pubPath, 'utf8');
+      try {
+        const client = await getConnection(authority); // 无预配凭据时弹窗输密码
+        const result = await execCommand(client, buildAuthorizeKeyCommand(pub));
+        if (result.code === 0) {
+          vscode.window.showInformationMessage(
+            `免密登录已部署到 ${authority},之后新开的 SSH 终端不再需要密码`
+          );
+        } else {
+          vscode.window.showErrorMessage(
+            `远端执行失败(code=${result.code}): ${result.stderr}`
+          );
+        }
+      } catch (err: any) {
+        vscode.window.showErrorMessage(`部署免密登录失败: ${err?.message ?? err}`);
+      }
     })
   );
 

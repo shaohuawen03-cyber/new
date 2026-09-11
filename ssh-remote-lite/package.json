@@ -2,7 +2,7 @@
   "name": "ssh-remote-lite",
   "displayName": "SSH Remote Lite",
   "description": "轻量级 SSH 远程开发:不依赖远端 vscode-server,用 ssh:// 文件系统浏览/编辑远端文件 + 交互式 SSH 终端。适用于跑不了新版 vscode-server 的老服务器(CentOS 7 / glibc < 2.28 等)。",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "publisher": "your-name",
   "license": "MIT",
   "engines": {
@@ -28,6 +28,10 @@
       {
         "command": "sshRemoteLite.setDefaultTerminal",
         "title": "SSH Remote Lite: 把 SSH 设为默认终端 (Agent 命令跑在远端)"
+      },
+      {
+        "command": "sshRemoteLite.uploadPublicKey",
+        "title": "SSH Remote Lite: 部署免密登录 (上传本机公钥)"
       }
     ],
     "configuration": {

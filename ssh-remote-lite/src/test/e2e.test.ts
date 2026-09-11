@@ -97,3 +97,21 @@ test('shell 终端: 欢迎语 + 输入回显', async () => {
   channel.close();
   client.end();
 });
+
+test('execCommand 在远端执行并返回退出码', async () => {
+  const { execCommand } = await import('../core');
+  const client = await connectWithConfig(baseCfg());
+  const res = await execCommand(client, 'echo hello');
+  assert.equal(res.code, 0);
+  assert.ok(res.stdout.includes('EXEC:echo hello'));
+  client.end();
+});
+
+test('buildAuthorizeKeyCommand 用 base64 传输公钥', async () => {
+  const { buildAuthorizeKeyCommand } = await import('../core');
+  const cmd = buildAuthorizeKeyCommand('ssh-rsa AAAA test@host');
+  const b64 = cmd.match(/echo ([A-Za-z0-9+/=]+) \|/)?.[1];
+  assert.ok(b64);
+  assert.equal(Buffer.from(b64!, 'base64').toString('utf8').trim(), 'ssh-rsa AAAA test@host');
+  assert.ok(cmd.includes('chmod 600'));
+});
