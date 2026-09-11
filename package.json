@@ -1,0 +1,99 @@
+{
+  "name": "ssh-remote-lite",
+  "displayName": "SSH Remote Lite",
+  "description": "Ultra-lightweight SSH & SFTP Remote workspace and terminal for Antigravity & VS Code (Zero server-side node/glibc dependencies)",
+  "version": "0.0.1",
+  "publisher": "antigravity-community",
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Other",
+    "Azure",
+    "Formatters"
+  ],
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "onFileSystem:ssh",
+    "onCommand:sshRemoteLite.connect",
+    "onCommand:sshRemoteLite.openTerminal"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "sshRemoteLite.connect",
+        "title": "SSH Remote Lite: 连接到主机...",
+        "category": "SSH Remote Lite"
+      },
+      {
+        "command": "sshRemoteLite.openTerminal",
+        "title": "SSH Remote Lite: 新建 SSH 终端",
+        "category": "SSH Remote Lite"
+      }
+    ],
+    "configuration": {
+      "type": "object",
+      "title": "SSH Remote Lite",
+      "properties": {
+        "sshRemoteLite.hosts": {
+          "type": "array",
+          "description": "预配置的 SSH 主机列表",
+          "default": [],
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "主机别名"
+              },
+              "host": {
+                "type": "string",
+                "description": "主机地址"
+              },
+              "port": {
+                "type": "number",
+                "default": 22,
+                "description": "SSH 端口"
+              },
+              "username": {
+                "type": "string",
+                "description": "用户名"
+              },
+              "privateKeyPath": {
+                "type": "string",
+                "description": "私钥路径 (例如 ~/.ssh/id_rsa)"
+              },
+              "defaultPath": {
+                "type": "string",
+                "default": "/",
+                "description": "默认打开的远端路径"
+              }
+            },
+            "required": [
+              "host",
+              "username"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile",
+    "test": "npm run compile && node --test out/test/core.test.js out/test/ssh_e2e.test.js",
+    "package": "vsce package --allow-missing-repository --skip-license"
+  },
+  "dependencies": {
+    "ssh2": "^1.15.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/ssh2": "^1.15.0",
+    "@types/vscode": "^1.75.0",
+    "@vscode/vsce": "^2.24.0",
+    "typescript": "^5.4.0"
+  }
+}
