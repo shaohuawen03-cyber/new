@@ -1,0 +1,56 @@
+{
+  "name": "ssh-remote-lite",
+  "displayName": "SSH Remote Lite",
+  "description": "轻量级 SSH 远程开发:不依赖远端 vscode-server,用 ssh:// 文件系统浏览/编辑远端文件 + 交互式 SSH 终端。适用于跑不了新版 vscode-server 的老服务器(CentOS 7 / glibc < 2.28 等)。",
+  "version": "0.0.1",
+  "publisher": "your-name",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onFileSystem:ssh"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "sshRemoteLite.connect",
+        "title": "SSH Remote Lite: 连接到主机..."
+      },
+      {
+        "command": "sshRemoteLite.openTerminal",
+        "title": "SSH Remote Lite: 新建 SSH 终端"
+      }
+    ],
+    "configuration": {
+      "title": "SSH Remote Lite",
+      "properties": {
+        "sshRemoteLite.hosts": {
+          "type": "array",
+          "default": [],
+          "description": "预配置主机列表。例: [{ \"name\": \"old-box\", \"host\": \"10.0.0.5\", \"port\": 22, \"username\": \"root\", \"password\": \"xxx\", \"privateKeyPath\": \"~/.ssh/id_rsa\" }]",
+          "items": {
+            "type": "object"
+          }
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p .",
+    "watch": "tsc -w -p ."
+  },
+  "dependencies": {
+    "ssh2": "^1.16.0"
+  },
+  "devDependencies": {
+    "@types/node": "^18.0.0",
+    "@types/ssh2": "^1.15.6",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.4.0"
+  }
+}
