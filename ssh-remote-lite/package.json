@@ -6,7 +6,7 @@
   "publisher": "your-name",
   "license": "MIT",
   "engines": {
-    "vscode": "^1.85.0"
+    "vscode": "^1.75.0"
   },
   "categories": [
     "Other"
@@ -42,15 +42,16 @@
   },
   "scripts": {
     "compile": "tsc -p .",
-    "watch": "tsc -w -p ."
+    "watch": "tsc -w -p .",
+    "test": "npm run compile && node --test \"out/test/*.test.js\""
   },
   "dependencies": {
     "ssh2": "^1.16.0"
   },
   "devDependencies": {
-    "@types/node": "^18.0.0",
+    "@types/node": "^20.19.43",
     "@types/ssh2": "^1.15.6",
-    "@types/vscode": "^1.85.0",
+    "@types/vscode": "~1.75.0",
     "typescript": "^5.4.0"
   }
 }
