@@ -36,6 +36,14 @@ description: "TRIGGER: user says 安装https://arena.ai/agent/01a0a821 的skills
 | `upload.ps1` | 附件按 `upload_map` 归位到 `sources/ code/ results/`，再调用 `push.ps1` | `.\upload.ps1 -Src "E:\附件"` |
 | `push.ps1` | `pull --ff-only` → `add -A` → commit → push；**拒绝推 main/master**；`-Gate` 提交前本机也跑一遍自检；**默认静默**（prompts 全关，拿不到凭据 exit 4 并提示跑 `auth.ps1`，绝不弹窗等待；`-Prompt` 才允许交互） | `.\push.ps1 -Gate "add files"` |
 | `auth.ps1` | **免点击推送**（`-GhLogin` 一条命令完成那唯一一次交互登录）：`-Setup`（**先探测，能静默拿到凭据就不动配置**；否则 gh 优先 / GCM，并在 dpapi·wincredman 里找已有凭据，命中 wincredman 就 unset 回默认）/ `-Verify`（prompts 关闭实跑 ls-remote + push --dry-run）/ `-MigrateStore`（复制凭据到 dpapi）/ `-Token`·`-TokenFile`·`-PromptToken`（播种令牌，永不回显）/ `-Json` / `-Unset` | `.\auth.ps1 -Setup -Verify` |
+| `download.ps1` | 按 `download_sets` 用 robocopy 镜像到本机；**`-Since` 只复制某日期后变过的文件**；**`-Folders a,b` 临时指定目录** | `.\download.ps1 -Folders deliverable,examples\x` |
+| `pack.ps1` | 把某个集合压成一个 zip（默认 `_export\<日期>_<集合>.zip`，不进 git） | `.\pack.ps1 -Set final` |
+| `doctor.ps1` | 体检：环境/分支/远端/落后领先/未提交/stash/LFS/大文件/**技能版本** + **值守/心跳/凭据**（watcher / heartbeat / auth 三行）；**`-Fix` 一键修复** | `.\doctor.ps1 -Fix` |
+| `bootstrap.ps1` | 首次准备：执行策略、git 身份、fetch、切分支、首拉；`-Auto` 追加"免点击凭据 + 注册值守" | `.\bootstrap.ps1 -Auto` |
+| `hardware.ps1` | **采集本机硬件与环境**（OS/CPU/内存/GPU 显存/磁盘/conda/mamba 环境列表，`-Deep` 探测每个环境的 torch+CUDA）写入 `hardware_dir` 并推送 | `.\hardware.ps1 -Deep` |
+| `watch.ps1` | **自动验证循环的本机侧**：`-Register` 注册常驻循环；**v2.7.0 每轮 auto_pull + auto_push**（hands_free）；请求检查时 sync → `check_cmd` → 推回 passed/failed；`-Status`（含 hands-free 行）、`-Test`、`-Pause`/`-Resume`/`-Unregister`、**`-Focus` / `-RestoreParked` / `-KeepOthers`** | `.\watch.ps1 -Register` |
+| `pr.ps1` | 用 GitHub CLI 开 PR（工作分支 → main），`-Checks` 看 CI | `.\pr.ps1` |
+| `install.ps1` | 把整套技能装到另一个仓库（升级时**保留**对方已有配置） | `.\install.ps1 -Target C:\MyProject -Branch arena/xxx` |
 
 ### 多账号（v2.9.0，`auth.ps1`）
 
@@ -46,15 +54,6 @@ description: "TRIGGER: user says 安装https://arena.ai/agent/01a0a821 的skills
 | `.\auth.ps1 -Unpin` | 去掉本克隆的 pin，回到机器默认账号 |
 
 同一台机器多个仓库各用各号时**只动这一个文件夹**；`gh auth switch -u X` 才是改机器默认（影响所有克隆）。
-| `download.ps1` | 按 `download_sets` 用 robocopy 镜像到本机；**`-Since` 只复制某日期后变过的文件**；**`-Folders a,b` 临时指定目录** | `.\download.ps1 -Folders deliverable,examples\x` |
-| `pack.ps1` | 把某个集合压成一个 zip（默认 `_export\<日期>_<集合>.zip`，不进 git） | `.\pack.ps1 -Set final` |
-| `doctor.ps1` | 体检：环境/分支/远端/落后领先/未提交/stash/LFS/大文件/**技能版本** + **值守/心跳/凭据**（watcher / heartbeat / auth 三行）；**`-Fix` 一键修复** | `.\doctor.ps1 -Fix` |
-| `bootstrap.ps1` | 首次准备：执行策略、git 身份、fetch、切分支、首拉；`-Auto` 追加"免点击凭据 + 注册值守" | `.\bootstrap.ps1 -Auto` |
-| `hardware.ps1` | **采集本机硬件与环境**（OS/CPU/内存/GPU 显存/磁盘/conda/mamba 环境列表，`-Deep` 探测每个环境的 torch+CUDA）写入 `hardware_dir` 并推送 | `.\hardware.ps1 -Deep` |
-| `watch.ps1` | **自动验证循环的本机侧**：`-Register` 注册常驻循环；**v2.7.0 每轮 auto_pull + auto_push**（hands_free）；请求检查时 sync → `check_cmd` → 推回 passed/failed；`-Status`（含 hands-free 行）、`-Test`、`-Pause`/`-Resume`/`-Unregister`、**`-Focus` / `-RestoreParked` / `-KeepOthers`** | `.\watch.ps1 -Register` |
-| `pr.ps1` | 用 GitHub CLI 开 PR（工作分支 → main），`-Checks` 看 CI | `.\pr.ps1` |
-| `install.ps1` | 把整套技能装到另一个仓库（升级时**保留**对方已有配置） | `.\install.ps1 -Target C:\MyProject -Branch arena/xxx` |
-
 ### 助手侧（`skills/git-sync/scripts/`，bash）
 
 | 脚本 | 作用 | 典型用法 |
