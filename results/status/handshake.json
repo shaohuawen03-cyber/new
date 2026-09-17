@@ -1,9 +1,9 @@
 {
-  "round": 1,
-  "arena_state": "awaiting_check",
-  "local_state": "pending",
-  "arena_updated": "2026-09-17 08:30:43",
-  "local_updated": null,
-  "host": "",
-  "note": "verify: local git-sync connected - watcher registered, silent push proven, hands-free auto_pull/auto_push on, skill v2.8.1 in place"
+    "round":  1,
+    "arena_state":  "awaiting_check",
+    "local_state":  "failed",
+    "arena_updated":  "2026-09-17 08:30:43",
+    "local_updated":  "2026-09-17 16:49:14",
+    "host":  "LAPTOP-R77M5D6M",
+    "note":  "verify: local git-sync connected - watcher registered, silent push proven, hands-free auto_pull/auto_push on, skill v2.8.1 in place"
 }
