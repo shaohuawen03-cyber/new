@@ -1,9 +1,9 @@
 {
-    "round":  1,
-    "arena_state":  "awaiting_check",
-    "local_state":  "passed",
-    "arena_updated":  "2026-09-17 09:48:52",
-    "local_updated":  "2026-09-17 17:50:45",
-    "host":  "LAPTOP-R77M5D6M",
-    "note":  "verify: test self-loop task with timestamped result"
+  "round": 1,
+  "arena_state": "accepted",
+  "local_state": "passed",
+  "arena_updated": "2026-09-17 09:50:54",
+  "local_updated": "2026-09-17 17:50:45",
+  "host": "LAPTOP-R77M5D6M",
+  "note": "hands-free: criteria met"
 }
