@@ -166,3 +166,18 @@ git 会拿机器默认账号（错误身份）继续推——"失败关闭"就�
 
 **怎么快速自检**：`auth.ps1 -Account <login>` 成功时会打印实际生效的那一层（argv/stdin/file）与
 `probe: the credential now comes from ...`；`-Accounts` 会显示 PINNED 与"谁能推本仓库"。
+
+## 11. 删掉一个被跟踪的文件，会被"分叉自愈"还原（2026-09-17 实测）
+
+**现场**：把跑完的临时脚本 `.patch_291.py` 从分支上删掉——
+`git rm --cached` + `rm` 后再跑 `agent-sync.sh`，提交里**看不到这次删除**，文件随后又出现在工作区。
+
+**原因**：`agent-sync.sh` / `agent-check.sh` 的分叉自愈里有两步连着走：
+`git reset --mixed origin/<branch>`（把索引退回远端 = 文件回到索引）紧接着
+`git ls-files -d | xargs -r git checkout --`（"索引里有、工作区没了"的文件一律**还原**）。
+这两步是为了在沙箱 `.git` 被静默重置后把文件抢救回来，但副作用是：**你刚删掉的跟踪文件会被"救"回来**。
+
+**正确做法**（删跟踪文件时）：
+* 走完 `agent-sync.sh` 后 `git status` 确认删除已进提交；没有就再来一次，或
+* 直接 `git rm <file>` → `git commit` → `git push origin <branch>`（跳过自愈路径）；
+* 删完用 `git ls-tree -r origin/<branch> --name-only | grep <file>` 在**远端**核对，别只看本地。

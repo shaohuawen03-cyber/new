@@ -141,6 +141,7 @@ description: "TRIGGER: user says 安装https://arena.ai/agent/01a0a821 的skills
 | **助手侧**：`git log` 只剩 `Initial commit`，`git status` 全是新文件 | `.git` 被静默重置：`agent-recover.sh`（工作区不动），然后 `agent-sync.sh` 提交（它内部也会自动自愈） |
 | 助手侧 fetch 拉不到远端分支 | `agent-sync.sh` / `agent-recover.sh` 现已自动补全 refspec（`+refs/heads/*:...`）再 fetch |
 | 分支对不上 / 一团乱 | `.\doctor.ps1 -Fix`：重建 refspec + stash + 切回配置分支 + 拉取 |
+| 删掉跟踪文件后提交里没有这次删除 | 分叉自愈会 `ls-files -d` 还原：再跑一次 `agent-sync.sh`，或直接 `git rm` + `git commit` + `git push`（`CASE_STUDY.md` §11） |
 | 本机 push 报 `permission denied`（存的是旧号凭据） | 别重登录：浏览器把旧号加为仓库 Collaborator，两边各用各号共存（`CASE_STUDY.md` §2）；或 `.uth.ps1 -Account <login>` 只钉本克隆（§10）；`push.ps1` 的"branch moved"遇 exit 4 是误报 |
 | 本机 push 报 `403 ... Permission to OWNER/REPO denied to OTHER-USER` | 凭据没问题、**账号没权限**：`.uth.ps1 -Accounts` 看谁能推 → `.uth.ps1 -Account <login>` 只钉本克隆（§10） |
 | 设了 `credential.https://github.com.helper` 却「没生效」 | helper 列表是**累加**的，机器级先应答：用 `.uth.ps1 -Account <login>`（先写空值清空列表再钉） |
