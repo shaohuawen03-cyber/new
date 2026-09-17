@@ -1,9 +1,9 @@
 {
-  "round": 4,
-  "arena_state": "awaiting_check",
-  "local_state": "pending",
-  "arena_updated": "2026-09-17 09:22:35",
-  "local_updated": null,
-  "host": "",
-  "note": "verify: round 4 - account pin now live (argv layer), push --dry-run PASSED with gh active = mqgg5630-cyber; expect the check log to show the PINNED line and accept 2a to pass with the pinned account"
+    "round":  4,
+    "arena_state":  "awaiting_check",
+    "local_state":  "passed",
+    "arena_updated":  "2026-09-17 09:22:35",
+    "local_updated":  "2026-09-17 17:23:21",
+    "host":  "LAPTOP-R77M5D6M",
+    "note":  "verify: round 4 - account pin now live (argv layer), push --dry-run PASSED with gh active = mqgg5630-cyber; expect the check log to show the PINNED line and accept 2a to pass with the pinned account"
 }
