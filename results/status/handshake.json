@@ -1,9 +1,9 @@
 {
-  "round": 1,
-  "arena_state": "accepted",
-  "local_state": "passed",
-  "arena_updated": "2026-09-17 08:57:39",
-  "local_updated": "2026-09-17 16:52:05",
-  "host": "LAPTOP-R77M5D6M",
-  "note": "round 1 passed on LAPTOP-R77M5D6M (gate+rules+silent push proven); skill v2.8.1 accepted - v2.9.0 verification follows as round 2"
+  "round": 2,
+  "arena_state": "awaiting_check",
+  "local_state": "pending",
+  "arena_updated": "2026-09-17 08:57:55",
+  "local_updated": null,
+  "host": "",
+  "note": "verify: skill v2.9.0 on the real machine - agent-install fix (code/check_loop_summary.ps1 present), all .ps1 parse, new auth.ps1 loads (-Accounts/-Account/-Unpin), per-clone account pin works with the machine default back on mqgg5630-cyber"
 }
