@@ -1,9 +1,9 @@
 {
-    "round":  2,
-    "arena_state":  "awaiting_check",
-    "local_state":  "passed",
-    "arena_updated":  "2026-09-17 08:57:55",
-    "local_updated":  "2026-09-17 16:58:44",
-    "host":  "LAPTOP-R77M5D6M",
-    "note":  "verify: skill v2.9.0 on the real machine - agent-install fix (code/check_loop_summary.ps1 present), all .ps1 parse, new auth.ps1 loads (-Accounts/-Account/-Unpin), per-clone account pin works with the machine default back on mqgg5630-cyber"
+  "round": 2,
+  "arena_state": "accepted",
+  "local_state": "passed",
+  "arena_updated": "2026-09-17 09:01:28",
+  "local_updated": "2026-09-17 16:58:44",
+  "host": "LAPTOP-R77M5D6M",
+  "note": "round 2 passed on LAPTOP-R77M5D6M: every .ps1 parses under Windows PowerShell 5.1, new local_check + criteria (v2.9.0) verified, check_loop_summary 2c now green; pin test stays with the user"
 }
