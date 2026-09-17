@@ -18,8 +18,8 @@
   ],
   "require_contains": {
     "skills/git-sync/sync.config.json": "\"hands_free\": true",
-    "skills/git-sync/VERSION": "2.9.0",
-    "auth.ps1": "auth.ps1 -Accounts"
+    "skills/git-sync/VERSION": "2.9.1",
+    "auth.ps1": "}; f'"
   },
   "min_bytes": {
     "watch.ps1": 20000

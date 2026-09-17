@@ -1,9 +1,9 @@
 {
-  "round": 2,
-  "arena_state": "accepted",
-  "local_state": "passed",
-  "arena_updated": "2026-09-17 09:01:28",
-  "local_updated": "2026-09-17 16:58:44",
-  "host": "LAPTOP-R77M5D6M",
-  "note": "round 2 passed on LAPTOP-R77M5D6M: every .ps1 parses under Windows PowerShell 5.1, new local_check + criteria (v2.9.0) verified, check_loop_summary 2c now green; pin test stays with the user"
+  "round": 3,
+  "arena_state": "awaiting_check",
+  "local_state": "pending",
+  "arena_updated": "2026-09-17 09:13:37",
+  "local_updated": null,
+  "host": "",
+  "note": "verify: skill v2.9.1 - account pin fixed on the real machine (helper is a called function now, empty reset verified, still no fallback); run .\\auth.ps1 -Account shaohuawen03-cyber and report the layer + probe username"
 }
