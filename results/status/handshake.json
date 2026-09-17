@@ -1,9 +1,9 @@
 {
-    "round":  5,
-    "arena_state":  "awaiting_check",
-    "local_state":  "passed",
-    "arena_updated":  "2026-09-17 09:31:27",
-    "local_updated":  "2026-09-17 17:32:06",
-    "host":  "LAPTOP-R77M5D6M",
-    "note":  "verify: v2.9.2 - skill home is now this branch (installer candidate list + newest-wins), account policy in docs (SKILL 11/12, README, case study 12), handoff emits the owner pin line; check criteria incl. VERSION 2.9.2"
+  "round": 5,
+  "arena_state": "accepted",
+  "local_state": "passed",
+  "arena_updated": "2026-09-17 09:34:34",
+  "local_updated": "2026-09-17 17:32:06",
+  "host": "LAPTOP-R77M5D6M",
+  "note": "round 5 passed on LAPTOP-R77M5D6M: v2.9.2 verified - installer candidate list, handoff owner-pin policy string, VERSION 2.9.2, silent push PROVEN with the pinned account; loop closed"
 }
