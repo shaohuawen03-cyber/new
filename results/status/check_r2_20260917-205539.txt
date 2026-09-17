@@ -1,0 +1,40 @@
+check round 2 on LAPTOP-R77M5D6M - passed (exit 0)
+cmd: powershell -NoProfile -ExecutionPolicy Bypass -File code/local_check.ps1
+elapsed: 16s
+
+OK: all .ps1 files are ASCII-only
+OK: sync.config.json branch=arena/01a0af01-new
+OK: sync.config.json branch matches HEAD (arena/01a0af01-new)
+OK: root scripts identical to skills/git-sync/scripts
+OK: no drive-style variable typos ($var:)
+== exits in Invoke-PollRound: 6
+OK: every exit path sets its closing summary
+== exits in Invoke-PollOnce: 2 (lock held / crashed / normal)
+OK: loop closing lines covered (6 exit paths, all with their own summary)
+OK: every .ps1 parses
+   (gate ran via E:\hermes\git\bin\bash.exe [git])
+== accept 2a: silent push PROVEN (ls-remote + push --dry-run, prompts disabled)
+== auth: this clone is PINNED to gh account 'shaohuawen03-cyber' (other clones use the machine default)
+== accept 2b (fallback): one LONG-LIVED loop process - one brief flash per logon,
+   not per poll. For zero flash: admin PowerShell -> .\watch.ps1 -Unregister ;
+   .\watch.ps1 -Register -Headless   (or fix the launcher, see watch-*.log)
+== exits in Invoke-PollRound: 6
+OK: every exit path sets its closing summary
+== exits in Invoke-PollOnce: 2 (lock held / crashed / normal)
+OK: loop closing lines covered (6 exit paths, all with their own summary)
+== check_loop_summary PASSED
+== accept 2c: watcher closing lines verified (every exit path has its summary)
+== accept 2d: hands-free auto_pull/auto_push present in watch.ps1
+== success criteria: results/status/success_criteria.json
+   合订本v2: 去第四部分+JCR待嵌入页, 删重建DOCX, 加原表填写脚本
+   OK   exists: deliverable/国家奖学金支撑材料合订本_文绍华.pdf (4894990 B)
+   OK   exists: deliverable/申请理由200字.txt (917 B)
+   OK   exists: code/fill_reason.ps1 (5509 B)
+   OK   exists: code/build_deliverable.py (16905 B)
+   OK   absent: deliverable/附件2_申请审批表_已填申请理由.docx
+   OK   contains deliverable/申请理由200字.txt <- Food Chemistry
+   OK   contains code/fill_reason.ps1 <- KWPS.Application
+   OK   size deliverable/国家奖学金支撑材料合订本_文绍华.pdf: 4894990 >= 4000000
+   OK   size deliverable/申请理由200字.txt: 917 >= 500
+   OK   size code/fill_reason.ps1: 5509 >= 3000
+== local checks passed
