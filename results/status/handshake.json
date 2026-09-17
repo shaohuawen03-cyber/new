@@ -1,9 +1,9 @@
 {
-    "round":  4,
-    "arena_state":  "awaiting_check",
-    "local_state":  "passed",
-    "arena_updated":  "2026-09-17 09:22:35",
-    "local_updated":  "2026-09-17 17:23:21",
-    "host":  "LAPTOP-R77M5D6M",
-    "note":  "verify: round 4 - account pin now live (argv layer), push --dry-run PASSED with gh active = mqgg5630-cyber; expect the check log to show the PINNED line and accept 2a to pass with the pinned account"
+  "round": 4,
+  "arena_state": "accepted",
+  "local_state": "passed",
+  "arena_updated": "2026-09-17 09:25:41",
+  "local_updated": "2026-09-17 17:23:21",
+  "host": "LAPTOP-R77M5D6M",
+  "note": "round 4 passed with the per-clone pin live on LAPTOP-R77M5D6M: check log shows PINNED to shaohuawen03-cyber, accept 2a silent push proven, all .ps1 parse, criteria green; dual-account coexistence verified"
 }
