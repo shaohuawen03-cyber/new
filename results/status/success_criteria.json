@@ -1,0 +1,29 @@
+{
+  "description": "自循环任务测试：交付物存在性 + 基础脚本与配置完备性 + 闸门验证 + 本机值守往返",
+  "require_files": [
+    "watch.ps1",
+    "bootstrap.ps1",
+    "auth.ps1",
+    "doctor.ps1",
+    "hardware.ps1",
+    "skills/git-sync/VERSION",
+    "skills/git-sync/sync.config.json",
+    "code/check_all.sh",
+    "code/local_check.ps1",
+    "code/check_loop_summary.ps1",
+    "deliverable/test_self_loop_20260917-174700.md",
+    "results/status/handshake.json"
+  ],
+  "forbid_files": [
+    "local/inbox"
+  ],
+  "require_contains": {
+    "skills/git-sync/sync.config.json": "\"hands_free\": true",
+    "skills/git-sync/VERSION": "2.9.2",
+    "deliverable/test_self_loop_20260917-174700.md": "自循环任务测试"
+  },
+  "min_bytes": {
+    "watch.ps1": 20000,
+    "deliverable/test_self_loop_20260917-174700.md": 100
+  }
+}
