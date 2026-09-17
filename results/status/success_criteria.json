@@ -1,0 +1,24 @@
+{
+  "description": "本地与 Arena 打通：技能就位 + 本机值守注册 + 一轮检查回传（verdict 落在 handshake）",
+  "require_files": [
+    "watch.ps1",
+    "bootstrap.ps1",
+    "auth.ps1",
+    "doctor.ps1",
+    "hardware.ps1",
+    "skills/git-sync/VERSION",
+    "skills/git-sync/sync.config.json",
+    "code/check_all.sh",
+    "code/local_check.ps1",
+    "results/status/handshake.json"
+  ],
+  "forbid_files": [
+    "local/inbox"
+  ],
+  "require_contains": {
+    "skills/git-sync/sync.config.json": "\"hands_free\": true"
+  },
+  "min_bytes": {
+    "watch.ps1": 20000
+  }
+}
