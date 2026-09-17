@@ -1,0 +1,48 @@
+check round 1 on LAPTOP-R77M5D6M - passed (exit 0)
+cmd: powershell -NoProfile -ExecutionPolicy Bypass -File code/local_check.ps1
+elapsed: 17s
+
+OK: all .ps1 files are ASCII-only
+OK: sync.config.json branch=arena/01a0aeb9-new
+OK: sync.config.json branch matches HEAD (arena/01a0aeb9-new)
+OK: root scripts identical to skills/git-sync/scripts
+OK: no drive-style variable typos ($var:)
+== exits in Invoke-PollRound: 6
+OK: every exit path sets its closing summary
+== exits in Invoke-PollOnce: 2 (lock held / crashed / normal)
+OK: loop closing lines covered (6 exit paths, all with their own summary)
+OK: every .ps1 parses
+   (gate ran via E:\hermes\git\bin\bash.exe [git])
+== accept 2a: silent push PROVEN (ls-remote + push --dry-run, prompts disabled)
+== auth: this clone is PINNED to gh account 'shaohuawen03-cyber' (other clones use the machine default)
+== accept 2b (fallback): one LONG-LIVED loop process - one brief flash per logon,
+   not per poll. For zero flash: admin PowerShell -> .\watch.ps1 -Unregister ;
+   .\watch.ps1 -Register -Headless   (or fix the launcher, see watch-*.log)
+== exits in Invoke-PollRound: 6
+OK: every exit path sets its closing summary
+== exits in Invoke-PollOnce: 2 (lock held / crashed / normal)
+OK: loop closing lines covered (6 exit paths, all with their own summary)
+== check_loop_summary PASSED
+== accept 2c: watcher closing lines verified (every exit path has its summary)
+== accept 2d: hands-free auto_pull/auto_push present in watch.ps1
+== success criteria: results/status/success_criteria.json
+   自循环任务测试：交付物存在性 + 基础脚本与配置完备性 + 闸门验证 + 本机值守往返
+   OK   exists: watch.ps1 (85793 B)
+   OK   exists: bootstrap.ps1 (5908 B)
+   OK   exists: auth.ps1 (49023 B)
+   OK   exists: doctor.ps1 (16008 B)
+   OK   exists: hardware.ps1 (12099 B)
+   OK   exists: skills/git-sync/VERSION (7 B)
+   OK   exists: skills/git-sync/sync.config.json (1174 B)
+   OK   exists: code/check_all.sh (10173 B)
+   OK   exists: code/local_check.ps1 (15115 B)
+   OK   exists: code/check_loop_summary.ps1 (5007 B)
+   OK   exists: deliverable/test_self_loop_20260917-174700.md (1280 B)
+   OK   exists: results/status/handshake.json (235 B)
+   OK   absent: local/inbox
+   OK   contains skills/git-sync/sync.config.json <- "hands_free": true
+   OK   contains skills/git-sync/VERSION <- 2.9.2
+   OK   contains deliverable/test_self_loop_20260917-174700.md <- 自循环任务测试
+   OK   size watch.ps1: 85793 >= 20000
+   OK   size deliverable/test_self_loop_20260917-174700.md: 1280 >= 100
+== local checks passed
