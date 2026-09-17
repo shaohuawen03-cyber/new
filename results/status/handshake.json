@@ -1,9 +1,9 @@
 {
-  "round": 1,
-  "arena_state": "accepted",
-  "local_state": "passed",
-  "arena_updated": "2026-09-17 12:39:07",
-  "local_updated": "2026-09-17 20:38:56",
-  "host": "LAPTOP-R77M5D6M",
-  "note": "hands-free: criteria met"
+  "round": 2,
+  "arena_state": "awaiting_check",
+  "local_state": "pending",
+  "arena_updated": "2026-09-17 12:53:57",
+  "local_updated": null,
+  "host": "",
+  "note": "verify: 合订本v2 PDF14页无第四部分, 重建DOCX已删, 填表脚本就绪"
 }
