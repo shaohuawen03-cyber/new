@@ -602,7 +602,12 @@ if ($Account -or $Unpin) {
     Say ''
     $probe = Invoke-CredProbe ''
     if ($probe.ok) {
-        if ($probe.user -eq $Account -or $probe.user -eq 'x-access-token') {
+        if (-not $Account) {
+            # -Unpin: there is no account to compare against, the machine
+            # default is the expected answer (v2.9.1 used to warn here with
+            # "expected ''", which looked like a failure on a healthy machine)
+            Ok "probe: the machine default answers again (username=$($probe.user))"
+        } elseif ($probe.user -eq $Account -or $probe.user -eq 'x-access-token') {
             Ok "probe: the credential now comes from '$Account' (username=$($probe.user))"
         } else {
             Warn "probe returned username=$($probe.user) - expected '$Account' (still logged in?)"
