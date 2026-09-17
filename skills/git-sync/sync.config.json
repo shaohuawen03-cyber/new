@@ -20,7 +20,10 @@
     ".ipynb": "code",
     ".xlsx": "results",
     ".xls": "results",
-    ".csv": "results"
+    ".csv": "results",
+    ".png": "sources",
+    ".jpg": "sources",
+    ".jpeg": "sources"
   },
   "gate": "bash code/check_all.sh",
   "receipt": "results/sync/last_sync.md",

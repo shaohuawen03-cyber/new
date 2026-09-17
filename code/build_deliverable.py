@@ -1,14 +1,19 @@
 # -*- coding: utf-8 -*-
-"""Build the scholarship deliverables (合订本PDF + 已填表DOCX + 理由TXT).
+"""Build the scholarship deliverables v2 (合订本PDF + 理由TXT).
 
-Inputs (from user's upload): sources/*.pdf/.docx/.doc
+v2 changes: merged PDF drops Part 4 (reason page); JCR section embeds the
+user's screenshot once sources/JCR分区查询截图.png arrives (until then a
+clearly-labeled pending box, no fabricated claims); the rebuilt DOCX form is
+REMOVED (user requires the ORIGINAL .doc format -> fill locally with
+code/fill_reason.ps1 which uses Word/WPS COM on the real .doc).
+
+Inputs (from user's upload): sources/*.pdf/.docx/.doc/.png
 Outputs (committed to git):
   deliverable/国家奖学金支撑材料合订本_文绍华.pdf
-  deliverable/附件2_申请审批表_已填申请理由.docx
-  deliverable/申请理由200字.txt
+  deliverable/申请理由200字.txt   (also the fill source for fill_reason.ps1)
 
-Fonts: fonts/SHS-R-sub.ttf / fonts/SHS-B-sub.ttf (subset of SourceHanSansCN,
-built from THIS file's text via pyftsubset; fonts/ is gitignored).
+Fonts: code/fonts/SHS-R-sub.ttf / SHS-B-sub.ttf (subset of SourceHanSansCN,
+built from THIS file's text via pyftsubset).
 Run:  .venv/bin/python code/build_deliverable.py
 """
 import os, re, zipfile, tempfile
@@ -20,8 +25,8 @@ FONTS_DIR = os.path.join(REPO, "code", "fonts")
 
 PAPER_PDF = os.path.join(SRC_DIR, "Combined computational and spectroscopic analyses of the interactions between ginger compounds and bovine type I collagen.pdf")
 WOS_DOCX = os.path.join(SRC_DIR, "文字文稿1.docx")
+JCR_IMG = os.path.join(SRC_DIR, "JCR分区查询截图.png")
 PDF_OUT = os.path.join(OUT_DIR, "国家奖学金支撑材料合订本_文绍华.pdf")
-DOCX_OUT = os.path.join(OUT_DIR, "附件2_申请审批表_已填申请理由.docx")
 TXT_OUT = os.path.join(OUT_DIR, "申请理由200字.txt")
 
 REASON = ("本人文绍华，鲁东大学生命科学学院生物学2024级研究生，共青团员。"
@@ -37,14 +42,18 @@ REASON = ("本人文绍华，鲁东大学生命科学学院生物学2024级研�
 # plus all literals in this file are the subset source (see fonts/README).
 CHARSET_ANCHOR = "年月日第部分页共计〇一二三四五六七八九十—…·（）／：；，。、待补充替换截图导官网占位封面目录清单生成说明打印核对复制正式官方声明插件标签影响因子检索类型归档编号卷期状态作者通讯单位密钥0123456789"
 
-APPLICANT = {
-    "姓名": "文绍华", "性别": "男", "出生年月": "2002.03.04",
-    "政治面貌": "共青团员", "民族": "汉族", "入学时间": "2024.08.25",
-    "院系": "生命科学学院", "专业": "生物学", "学制": "三年",
-    "年级": "2024级", "班级": "生物学", "联系电话": "19861558892",
-    "学校": "鲁东大学", "学号": "2024110316",
-    "身份证号": "51370120020302041X",
-}
+JCR_INFO = [
+    ("期刊", "Food Chemistry"),
+    ("JCR年度", "2025（截图左上角 JCR Year）"),
+    ("收录版本", "Science Citation Index Expanded (SCIE)"),
+    ("ISSN / eISSN", "0308-8146 / 1873-7072"),
+    ("JCR缩写 / ISO缩写", "FOOD CHEM / Food Chem."),
+    ("学科类别", "NUTRITION & DIETETICS；CHEMISTRY, APPLIED；FOOD SCIENCE & TECHNOLOGY"),
+    ("语种 / 地区", "English / ENGLAND"),
+    ("出版商", "ELSEVIER SCI LTD（125 London Wall, London EC2Y 5AS, ENGLAND）"),
+    ("出版频率", "24 issues/year"),
+    ("插件标签", "农林科学TOP；EI检索；SCI升级版农林科学1区；SCI基础版工程技术2区；IF 10.4；SWJTU A+（截图中的浏览器插件标注）"),
+]
 
 PAPER_INFO = [
     ("论文标题", "Combined computational and spectroscopic analyses of the interactions between ginger compounds and bovine type I collagen"),
@@ -121,8 +130,8 @@ def build_front(toc_entries, path):
     story.append(Paragraph("申请人：文绍华（鲁东大学 生命科学学院 生物学2024级 学号2024110316）", S["center"]))
     story.append(Paragraph("代表性成果：Food Chemistry 521 (2026) 149910（共同第一作者）", S["center"]))
     story.append(Spacer(1, 20))
-    story.append(Paragraph("本合订本按《要求.md》编排：目录 — 成果（论文全文）— WOS收录和分区 — JCR分区查询 — 申请理由。", S["body"]))
-    story.append(Paragraph("其中“JCR分区查询”原件尚未取得，本版以占位页说明，待补充后替换重出；其余均为原件或原件截图。", S["body"]))
+    story.append(Paragraph("本合订本按《要求.md》编排：目录 — 成果（论文全文）— WOS收录和分区 — JCR分区查询。申请理由填入原表（附件2），不收入本合订本。", S["body"]))
+    story.append(Paragraph("其中“JCR分区查询”截图已由申请人提供，待截图文件经上传收入后即嵌入替换本页说明；其余均为原件或原件截图。", S["body"]))
     story.append(Spacer(1, 10))
     story.append(Paragraph("生成日期：2026年9月17日", S["center"]))
     from reportlab.platypus import PageBreak
@@ -164,126 +173,40 @@ def build_back_section_wos(wos_img, path):
 
 
 def build_back_section_jcr(path):
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
     from reportlab.lib.pagesizes import A4
-    S = _styles()
-    story = [Paragraph("第三部分　JCR分区查询", S["h1"]),
-             Paragraph("状态：待补充（申请人说明“还未有”）。", S["body"]),
-             Paragraph("本页为占位页，未编造任何分区结论。请申请人登录JCR官网（https://jcr.clarivate.com）查询“Food Chemistry”最新年度分区后，将查询结果页导出为PDF或截图发给经办人，替换本页后重新生成合订本即可。", S["body"]),
-             Spacer(1, 8),
-             Paragraph("补充步骤：", S["h2"]),
-             Paragraph("1. 在JCR中搜索期刊“Food Chemistry”，确认年度与ISSN；", S["body"]),
-             Paragraph("2. 将含分区（Quartile）与排名的结果页打印为PDF；", S["body"]),
-             Paragraph("3. 把该PDF与本说明一起发给材料经办人，替换本页。", S["body"])]
-    doc = SimpleDocTemplate(path, pagesize=A4, leftMargin=57, rightMargin=57, topMargin=57, bottomMargin=57,
-                            title="JCR分区查询（待补充）", author="文绍华")
-    doc.build(story, onFirstPage=lambda c, d: _footer(c, d, 0), onLaterPages=lambda c, d: _footer(c, d, 0))
-
-
-def build_back_section_reason(path):
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
-    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import ParagraphStyle
     from reportlab.lib import colors
     S = _styles()
-    n = cjk_count(REASON)
-    story = [Paragraph("第四部分　申请理由（200字）定稿", S["h1"]),
-             Paragraph("以下为已按200字要求写好的申请理由正文（中文字数 %d，含标点），请复制到《附件2：研究生国家奖学金申请审批表》“申请理由”栏；随附的DOCX版审批表已预填本段文字，可直接核对打印。" % n, S["small"]),
-             Spacer(1, 4)]
-    box = Table([[Paragraph(REASON, S["bodyL"])]], colWidths=[482])
-    box.setStyle(TableStyle([("BOX", (0, 0), (-1, -1), 1, colors.black),
-                             ("INNERPADDING", (0, 0), (-1, -1), 10)]))
-    story += [box, Spacer(1, 10),
-              Paragraph("写作依据（均出自申请人原件，未编造）：鲁东大学生命科学学院生物学2024级、共青团员；必修9门全及格、综合考评16/29；以共同第一作者在Food Chemistry（SCI升级版农林科学1区，IF 10.4）发表论文；研究内容概括自论文摘要。", S["small"]),
-              Paragraph("材料清单：本合订本PDF（封面目录＋论文全文10页＋WOS证明＋JCR占位＋本页）；附件2审批表DOCX（已填理由）；申请理由200字TXT。", S["small"])]
+    story = [Paragraph("第三部分　JCR分区查询", S["h1"])]
+    if os.path.isfile(JCR_IMG):
+        story.append(Paragraph("来源：申请人提供的JCR期刊主页截图（原样嵌入下图）", S["small"]))
+        rows = [[Paragraph("<b>%s</b>" % k, S["cellB"]), Paragraph(v, S["cell"])] for k, v in JCR_INFO]
+        t = Table(rows, colWidths=[150, 332])
+        t.setStyle(TableStyle([("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+                               ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                               ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#f2f2f2"))]))
+        h2tight = ParagraphStyle("h2tight2", parent=S["h2"], spaceBefore=2, spaceAfter=2)
+        story += [t, Spacer(1, 2), Paragraph("JCR期刊主页截图（原件）：", h2tight)]
+        from PIL import Image as PILImage
+        iw, ih = PILImage.open(JCR_IMG).size
+        w, h = 460, 460 * ih / iw
+        if h > 380:
+            w, h = w * 380 / h, 380
+        story.append(Image(JCR_IMG, width=w, height=h))
+        story.append(Spacer(1, 2))
+        story.append(Paragraph("声明：上图为申请人提供的JCR截图；其中彩色标签为浏览器学术插件标注。本截图为期刊主页头部，未含JCR分区表（Quartile／Rank）部分，此处不编造分区结论；如需完整分区排名，可再补一张含排名的截图。", S["small"]))
+        title = "JCR分区查询"
+    else:
+        story += [Paragraph("状态：截图文件待收入（申请人已在聊天中提供截图预览，待截图文件经上传收入后即嵌入本页）。", S["body"]),
+                  Paragraph("本页暂为说明页，未编造任何分区结论。请申请人把JCR截图保存为文件后执行上传，下一版合订本将原样嵌入截图并附期刊信息表。", S["body"]),
+                  Spacer(1, 8),
+                  Paragraph("上传方法（在本机克隆里执行）：", S["h2"]),
+                  Paragraph("把截图保存为 JCR分区查询截图.png 后：.\\upload.ps1 -Src <截图所在文件夹> -Message \"upload: JCR截图\"", S["body"])]
+        title = "JCR分区查询（截图待嵌入）"
     doc = SimpleDocTemplate(path, pagesize=A4, leftMargin=57, rightMargin=57, topMargin=57, bottomMargin=57,
-                            title="申请理由定稿", author="文绍华")
+                            title=title, author="文绍华")
     doc.build(story, onFirstPage=lambda c, d: _footer(c, d, 0), onLaterPages=lambda c, d: _footer(c, d, 0))
-
-
-# ---------------- DOCX form ----------------
-def _set_run_font(run, ascii_font="Times New Roman", east_asia="SimSun", size_pt=None, bold=None):
-    run.font.name = ascii_font
-    if size_pt: run.font.size = size_pt
-    if bold is not None: run.font.bold = bold
-    rPr = run._element.get_or_add_rPr()
-    from docx.oxml.ns import qn
-    ea = rPr.find(qn("w:eastAsia"))
-    if ea is None:
-        ea = rPr.makeelement(qn("w:eastAsia"), {})
-        rPr.append(ea)
-    ea.set(qn("w:val"), east_asia)
-
-
-def build_docx():
-    from docx import Document
-    from docx.shared import Pt, Cm
-    from docx.enum.text import WD_ALIGN_PARAGRAPH
-    from docx.enum.table import WD_TABLE_ALIGNMENT
-    from docx.oxml.ns import qn
-    doc = Document()
-    for sec in doc.sections:
-        sec.top_margin = Cm(1.5); sec.bottom_margin = Cm(1.5)
-        sec.left_margin = Cm(1.8); sec.right_margin = Cm(1.8)
-    style = doc.styles["Normal"]
-    style.font.name = "Times New Roman"; style.font.size = Pt(10.5)
-    style.element.rPr.rFonts.set(qn("w:eastAsia"), "SimSun")
-
-    def para(text="", bold=False, size=10.5, align=None, space_after=4):
-        p = doc.add_paragraph()
-        if align is not None: p.alignment = align
-        p.paragraph_format.space_after = Pt(space_after)
-        r = p.add_run(text); _set_run_font(r, size_pt=Pt(size), bold=bold)
-        return p
-
-    para("附件2：2025－2026学年国家奖学金申请审批表（已填申请理由）", bold=True, size=14, align=WD_ALIGN_PARAGRAPH.CENTER)
-    para("说明：本表根据原件重建排版，个人信息照录原件，申请理由已按200字填写；请核对后打印或复制到正式表格。推荐理由等栏目留空待手写。", size=9, space_after=6)
-    para("学校：%s　　学号：%s" % (APPLICANT["学校"], APPLICANT["学号"]), size=11)
-
-    def info_table(rows4):
-        t = doc.add_table(rows=0, cols=4)
-        t.style = "Table Grid"; t.alignment = WD_TABLE_ALIGNMENT.CENTER
-        for row in rows4:
-            cells = t.add_row().cells
-            for i, txt in enumerate(row):
-                cells[i].text = ""
-                r = cells[i].paragraphs[0].add_run(txt)
-                _set_run_font(r, size_pt=Pt(10.5), bold=(i % 2 == 0))
-        return t
-
-    para("一、基本情况", bold=True, size=12, space_after=2)
-    info_table([
-        ["姓名", APPLICANT["姓名"], "性别", APPLICANT["性别"]],
-        ["出生年月", APPLICANT["出生年月"], "政治面貌", APPLICANT["政治面貌"]],
-        ["民族", APPLICANT["民族"], "入学时间", APPLICANT["入学时间"]],
-        ["院系", APPLICANT["院系"], "专业", APPLICANT["专业"]],
-        ["学制", APPLICANT["学制"], "年级", APPLICANT["年级"]],
-        ["班级", APPLICANT["班级"], "联系电话", APPLICANT["联系电话"]],
-        ["身份证号", APPLICANT["身份证号"], "", ""],
-    ])
-    para("二、学习情况", bold=True, size=12, space_after=2)
-    para("成绩排名：19/29（名次/总人数）；实行综合考评排名：是；必修课9门，其中及格以上9门；综合排名：16/29（名次/总人数）。", size=11)
-    para("三、主要获奖情况", bold=True, size=12, space_after=2)
-    t = doc.add_table(rows=1, cols=3); t.style = "Table Grid"
-    hdr = t.rows[0].cells
-    for i, h in enumerate(["日期", "奖项名称", "颁奖单位"]):
-        hdr[i].text = ""
-        r = hdr[i].paragraphs[0].add_run(h); _set_run_font(r, size_pt=Pt(10.5), bold=True)
-    for _ in range(3):
-        row = t.add_row().cells
-        for c in row: c.text = "（空）" if False else ""
-    para("四、申请理由（200字）", bold=True, size=12, space_after=2)
-    p = doc.add_paragraph()
-    r = p.add_run(REASON); _set_run_font(r, size_pt=Pt(11))
-    para("申请人签名（手签）：　　　　　　年　　月　　日", size=11)
-    para("五、推荐理由（100字）", bold=True, size=12, space_after=2)
-    para("（由辅导员或班主任填写）", size=11)
-    para("推荐人签名：　　　　　　年　　月　　日", size=11)
-    para("六、院（系）意见", bold=True, size=12, space_after=2)
-    para("院系主管学生工作领导签名：　　　　　　（院系公章）　　　　　　年　　月　　日", size=11)
-    para("七、学校意见", bold=True, size=12, space_after=2)
-    para("经评审，并在校内　　月　　日至　　月　　日公示　　个工作日，无异议，现报请批准该同学获得国家奖学金。（学校公章）　　　　　　年　　月　　日", size=11)
-    para("制表：全国学生资助管理中心　2023版", size=9)
-    doc.save(DOCX_OUT)
 
 
 def main():
@@ -294,22 +217,22 @@ def main():
     _register_fonts()
     wos_img = extract_wos_image()
     tmp = tempfile.mkdtemp(prefix="hebian_")
-    wos_pdf = os.path.join(tmp, "wos.pdf"); jcr_pdf = os.path.join(tmp, "jcr.pdf"); rsn_pdf = os.path.join(tmp, "reason.pdf")
+    wos_pdf = os.path.join(tmp, "wos.pdf"); jcr_pdf = os.path.join(tmp, "jcr.pdf")
     build_back_section_wos(wos_img, wos_pdf)
     build_back_section_jcr(jcr_pdf)
-    build_back_section_reason(rsn_pdf)
     n_paper = len(PdfReader(PAPER_PDF).pages)
-    n_wos = len(PdfReader(wos_pdf).pages); n_jcr = len(PdfReader(jcr_pdf).pages); n_rsn = len(PdfReader(rsn_pdf).pages)
+    n_wos = len(PdfReader(wos_pdf).pages); n_jcr = len(PdfReader(jcr_pdf).pages)
     # front is cover + toc = 2 pages; renumber back sections with offset
     FRONT = 2
     p_paper = FRONT + 1
     p_wos = p_paper + n_paper
     p_jcr = p_wos + n_wos
-    p_rsn = p_jcr + n_jcr
-    toc = [("一、成果（论文全文，原样并入）", "第 %d–%d 页" % (p_paper, p_paper + n_paper - 1)),
-           ("二、WOS收录和分区证明（含截图）", "第 %d–%d 页" % (p_wos, p_wos + n_wos - 1)),
-           ("三、JCR分区查询（待补充·占位页）", "第 %d 页" % p_jcr),
-           ("四、申请理由（200字）定稿", "第 %d 页" % p_rsn)]
+    jcr_label = "三、JCR分区查询（含截图）" if os.path.isfile(JCR_IMG) else "三、JCR分区查询（截图待嵌入）"
+    def pg_range(start, n):
+        return "第 %d–%d 页" % (start, start + n - 1) if n > 1 else "第 %d 页" % start
+    toc = [("一、成果（论文全文，原样并入）", pg_range(p_paper, n_paper)),
+           ("二、WOS收录和分区证明（含截图）", pg_range(p_wos, n_wos)),
+           (jcr_label, pg_range(p_jcr, n_jcr))]
     front_pdf = os.path.join(tmp, "front.pdf")
     build_front(toc, front_pdf)
     assert len(PdfReader(front_pdf).pages) == FRONT, "front must be 2 pages"
@@ -330,22 +253,22 @@ def main():
             base.merge_page(PdfReader(ov).pages[0])
             wt.add_page(base)
         with open(dst, "wb") as f: wt.write(f)
-    wos_n = os.path.join(tmp, "wos_n.pdf"); jcr_n = os.path.join(tmp, "jcr_n.pdf"); rsn_n = os.path.join(tmp, "rsn_n.pdf")
+    wos_n = os.path.join(tmp, "wos_n.pdf"); jcr_n = os.path.join(tmp, "jcr_n.pdf")
     # subset font must be findable by reportlab canvas: already registered
-    stamp_numbers(wos_pdf, p_wos, wos_n); stamp_numbers(jcr_pdf, p_jcr, jcr_n); stamp_numbers(rsn_pdf, p_rsn, rsn_n)
+    stamp_numbers(wos_pdf, p_wos, wos_n); stamp_numbers(jcr_pdf, p_jcr, jcr_n)
     wt = PdfWriter()
-    for src in (front_pdf, PAPER_PDF, wos_n, jcr_n, rsn_n):
+    for src in (front_pdf, PAPER_PDF, wos_n, jcr_n):
         for pg in PdfReader(src).pages: wt.add_page(pg)
     wt.add_metadata({"/Title": "2025-2026学年研究生国家奖学金申请支撑材料合订本-文绍华",
                      "/Author": "文绍华", "/Subject": "国家奖学金支撑材料合订本"})
     with open(PDF_OUT, "wb") as f: wt.write(f)
-    build_docx()
     with open(TXT_OUT, "w", encoding="utf-8") as f:
         f.write("申请理由（200字）定稿\n\n" + REASON + "\n\n中文字数（含标点）：" + str(cjk_count(REASON))
-              + "；全文字符数：" + str(len(REASON)) + "\n说明：请复制正文到附件2“申请理由”栏。\n")
-    total = FRONT + n_paper + n_wos + n_jcr + n_rsn
-    print("paper=%d wos=%d jcr=%d reason=%d total=%d" % (n_paper, n_wos, n_jcr, n_rsn, total))
-    for p in (PDF_OUT, DOCX_OUT, TXT_OUT):
+              + "；全文字符数：" + str(len(REASON))
+              + "\n说明：本文件第3行为填表数据源，请在本机运行 code\\fill_reason.ps1 自动填入原表；也可手动复制正文到附件2“申请理由”栏。\n")
+    total = FRONT + n_paper + n_wos + n_jcr
+    print("paper=%d wos=%d jcr=%d total=%d jcr_img=%s" % (n_paper, n_wos, n_jcr, total, os.path.isfile(JCR_IMG)))
+    for p in (PDF_OUT, TXT_OUT):
         print("OK", os.path.getsize(p), p)
     os.remove(wos_img)
 
