@@ -1,9 +1,9 @@
 {
-  "round": 4,
-  "arena_state": "accepted",
-  "local_state": "passed",
-  "arena_updated": "2026-09-17 09:25:41",
-  "local_updated": "2026-09-17 17:23:21",
-  "host": "LAPTOP-R77M5D6M",
-  "note": "round 4 passed with the per-clone pin live on LAPTOP-R77M5D6M: check log shows PINNED to shaohuawen03-cyber, accept 2a silent push proven, all .ps1 parse, criteria green; dual-account coexistence verified"
+  "round": 5,
+  "arena_state": "awaiting_check",
+  "local_state": "pending",
+  "arena_updated": "2026-09-17 09:31:27",
+  "local_updated": null,
+  "host": "",
+  "note": "verify: v2.9.2 - skill home is now this branch (installer candidate list + newest-wins), account policy in docs (SKILL 11/12, README, case study 12), handoff emits the owner pin line; check criteria incl. VERSION 2.9.2"
 }
