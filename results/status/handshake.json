@@ -1,9 +1,9 @@
 {
-  "round": 3,
-  "arena_state": "awaiting_check",
-  "local_state": "pending",
-  "arena_updated": "2026-09-17 09:13:37",
-  "local_updated": null,
-  "host": "",
-  "note": "verify: skill v2.9.1 - account pin fixed on the real machine (helper is a called function now, empty reset verified, still no fallback); run .\\auth.ps1 -Account shaohuawen03-cyber and report the layer + probe username"
+    "round":  3,
+    "arena_state":  "awaiting_check",
+    "local_state":  "failed",
+    "arena_updated":  "2026-09-17 09:13:37",
+    "local_updated":  "2026-09-17 17:18:19",
+    "host":  "LAPTOP-R77M5D6M",
+    "note":  "verify: skill v2.9.1 - account pin fixed on the real machine (helper is a called function now, empty reset verified, still no fallback); run .\\auth.ps1 -Account shaohuawen03-cyber and report the layer + probe username"
 }
