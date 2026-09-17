@@ -254,6 +254,15 @@ if (Test-Path -LiteralPath $authScript) {
                 Line 'auth' 'NOT ready - run .\auth.ps1 -Setup (a push would need a click)' 'Yellow'
             }
             Line 'auth how' ("helper=$($auth.credential_helper) store=$($auth.credential_store) gh=$($auth.gh_state) scheme=$($auth.scheme)")
+            # multi-account: one machine, several GitHub logins (v2.9.0)
+            if ($auth.pinned_account) {
+                Line 'auth account' ("this clone is PINNED to $($auth.pinned_account) - gh active: $($auth.active_account)") 'Green'
+            } elseif ($auth.active_account) {
+                Line 'auth account' ("gh active account: $($auth.active_account) - no per-clone pin (repo $($auth.repo_slug))")
+                if ($auth.accounts -and @($auth.accounts).Count -gt 1) {
+                    Line 'auth switch' ("more logins available: $(@($auth.accounts) -join ', ') - .\auth.ps1 -Accounts")
+                }
+            }
         } else {
             Line 'auth' '(no json from auth.ps1 - run .\auth.ps1 by hand)' 'Yellow'
         }

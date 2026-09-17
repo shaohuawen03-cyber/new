@@ -101,3 +101,35 @@ round 47：`NTxPred2` 3.9 秒跑完，acc=0.97（P=1.00 R=0.70），104 秒 verd
 * **`require_contains` 的值必须是字符串**：门禁按 `str(needle) not in body` 判，
   传 list 会变成 Python repr（`['a', 'b']`）永远匹配不上——一个文件只 pin 一个子串，
   要 pin 多个就选横跨两者的那一段原文。
+
+## 9. 每克隆账号钉住（v2.9.0，2026-09-17，会话 `01a0ae7a`）
+
+**现场**：仓库 `shaohuawen03-cyber/new`（本机克隆 `E:\0github\git-sync\new-01a0ae7a`），
+Windows 侧 gh 默认账号 `mqgg5630-cyber`、凭据库 dpapi，`auth.ps1 -Verify` 报
+`Permission to shaohuawen03-cyber/new.git denied to mqgg5630-cybe ... 403`——
+**凭据是好的（40 字符 gho_ 令牌），403 是权限**。
+
+**修法（用户选 B：不改仓库权限）**：
+```powershell
+gh auth login --git-protocol https     # 加一个 shaohuawen03-cyber 登录
+gh auth switch -u mqgg5630-cyber       # ★ 默认账号切回 mqgg，否则 git-pull-arena / zhongqi 全部 403
+.\auth.ps1 -Account shaohuawen03-cyber # 把【这个克隆】钉住
+.\auth.ps1 -Verify                    # push --dry-run PASSED
+```
+
+**两条 shell 机制（实测，不是猜的）**：
+
+1. **helper 列表是累加的**：机器级 `credential.helper`（GCM）与
+   `credential.https://github.com.helper`（全局 gh = active 账号）都会排在前面先应答，
+   只 `--add` 一条更具体的 helper **等于没设**。必须先写一条**空值** `credential.helper` 清空列表，再钉。
+   实测（git 2.39，同一份 global 配置）：
+   `只 add` → 应答者是机器级 helper；`先 add 空值再 add pin` → 应答者是 pin。
+2. **`test -n $(...)` 是陷阱**：POSIX `test` 收到单个参数 `-n` 时**恒为真**，于是
+   `!test -n $(gh auth token -u X) && GH_TOKEN=$(...) gh auth git-credential` 在
+   账号不可用时仍会执行——而且 `GH_TOKEN` 为空时 gh 会**回落 active 账号**，
+   等于静默用错身份。最终写成失败关闭、且**不含双引号**（cmd 传递安全）：
+   `!if T=$(Q auth token -u NAME); then GH_TOKEN=$T Q auth git-credential; else exit 1; fi`。
+
+**附带**：`-Auto` 的零窗口启动器在杀软下报 `%1 不是有效的 Win32 应用程序`，自动回退 flash 模式
+（每次登录闪一次，功能不变）；想零闪就给 `C:\ProgramData\git-sync\` 加排除，或管理员跑
+`.\watch.ps1 -Register -Headless`（需 gh 令牌可用）。

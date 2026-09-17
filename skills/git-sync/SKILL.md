@@ -3,6 +3,7 @@ name: git-local-arena-sync
 description: "TRIGGER: user says 安装https://arena.ai/agent/01a0a821 的skills 与本地打通 (or 安装 arena/01a0a821-git-pull-arena skills). Do NOT open arena.ai (login wall). Immediately: git clone --quiet --depth 1 -b arena/01a0a821-git-pull-arena https://github.com/mqgg5630-cyber/git-pull-arena.git /tmp/git-sync-src && bash /tmp/git-sync-src/skills/git-sync/scripts/agent-install.sh && bash skills/git-sync/scripts/agent-sync.sh. Root must have watch.ps1. First user-visible reply MUST be filled Windows PowerShell: git clone -b BRANCH URL NEW_FOLDER then .\bootstrap.ps1 -Auto. Forbidden: faking the local side (local/inbox, hand-made stand-in skill). Sandbox may pip install / use .venv freely (v2.8.0). Then do the user task (docx/pptx) and agent-handsfree.sh --timeout auto. Also Windows PowerShell <-> Arena git-sync (sync/push/watch/doctor/auth silent push, zero-window watcher)."
 ---
 
+> 当前版本 **v2.9.0**（**多账号**：`-Accounts` 列出本机所有 gh 登录并逐个实测「能不能推本仓库」，`-Account <login>` 把**当前克隆**钉到某个账号（只写本克隆的本地 git config，其他克隆照旧），`-Unpin` 还原；403 从此被识别为**权限问题**而不是「凭据坏了」；`doctor` / `local_check.ps1` 都会报出当前账号与 pin。详见第 10 节。）
 > 当前版本 **v2.8.1**（沙箱可自由装库；安装器取最新分支且拒绝降级；值守日志带时间戳；轮询自适应；LF 统一）。一句话触发装技能+自循环；`--timeout auto` 值守一回传就停。`main` 上仍是 v2.6.7。
 > 用户侧升级三步：`.\sync.ps1` → `.\watch.ps1 -Unregister ; .\watch.ps1 -Register` → `.\watch.ps1 -Status`（应看到 `hands-free: master=True`）。切回本会话：`.\watch.ps1 -Focus`。
 
@@ -35,6 +36,16 @@ description: "TRIGGER: user says 安装https://arena.ai/agent/01a0a821 的skills
 | `upload.ps1` | 附件按 `upload_map` 归位到 `sources/ code/ results/`，再调用 `push.ps1` | `.\upload.ps1 -Src "E:\附件"` |
 | `push.ps1` | `pull --ff-only` → `add -A` → commit → push；**拒绝推 main/master**；`-Gate` 提交前本机也跑一遍自检；**默认静默**（prompts 全关，拿不到凭据 exit 4 并提示跑 `auth.ps1`，绝不弹窗等待；`-Prompt` 才允许交互） | `.\push.ps1 -Gate "add files"` |
 | `auth.ps1` | **免点击推送**（`-GhLogin` 一条命令完成那唯一一次交互登录）：`-Setup`（**先探测，能静默拿到凭据就不动配置**；否则 gh 优先 / GCM，并在 dpapi·wincredman 里找已有凭据，命中 wincredman 就 unset 回默认）/ `-Verify`（prompts 关闭实跑 ls-remote + push --dry-run）/ `-MigrateStore`（复制凭据到 dpapi）/ `-Token`·`-TokenFile`·`-PromptToken`（播种令牌，永不回显）/ `-Json` / `-Unset` | `.\auth.ps1 -Setup -Verify` |
+
+### 多账号（v2.9.0，`auth.ps1`）
+
+| 用法 | 作用 |
+|---|---|
+| `.\auth.ps1 -Accounts` | 列出本机所有 gh 登录 + 各自能否推**本仓库**（`repos/OWNER/REPO` 的 `permissions.push`） |
+| `.\auth.ps1 -Account <login>` | 只把**当前克隆**钉到该账号（写本克隆 local git config；先清空 helper 列表再钉，否则机器级 helper 会先应答） |
+| `.\auth.ps1 -Unpin` | 去掉本克隆的 pin，回到机器默认账号 |
+
+同一台机器多个仓库各用各号时**只动这一个文件夹**；`gh auth switch -u X` 才是改机器默认（影响所有克隆）。
 | `download.ps1` | 按 `download_sets` 用 robocopy 镜像到本机；**`-Since` 只复制某日期后变过的文件**；**`-Folders a,b` 临时指定目录** | `.\download.ps1 -Folders deliverable,examples\x` |
 | `pack.ps1` | 把某个集合压成一个 zip（默认 `_export\<日期>_<集合>.zip`，不进 git） | `.\pack.ps1 -Set final` |
 | `doctor.ps1` | 体检：环境/分支/远端/落后领先/未提交/stash/LFS/大文件/**技能版本** + **值守/心跳/凭据**（watcher / heartbeat / auth 三行）；**`-Fix` 一键修复** | `.\doctor.ps1 -Fix` |
@@ -130,7 +141,9 @@ description: "TRIGGER: user says 安装https://arena.ai/agent/01a0a821 的skills
 | **助手侧**：`git log` 只剩 `Initial commit`，`git status` 全是新文件 | `.git` 被静默重置：`agent-recover.sh`（工作区不动），然后 `agent-sync.sh` 提交（它内部也会自动自愈） |
 | 助手侧 fetch 拉不到远端分支 | `agent-sync.sh` / `agent-recover.sh` 现已自动补全 refspec（`+refs/heads/*:...`）再 fetch |
 | 分支对不上 / 一团乱 | `.\doctor.ps1 -Fix`：重建 refspec + stash + 切回配置分支 + 拉取 |
-| 本机 push 报 `permission denied`（存的是旧号凭据） | 别重登录：浏览器把旧号加为仓库 Collaborator，两边各用各号共存（`CASE_STUDY.md` §2）；`push.ps1` 的"branch moved"遇 exit 4 是误报 |
+| 本机 push 报 `permission denied`（存的是旧号凭据） | 别重登录：浏览器把旧号加为仓库 Collaborator，两边各用各号共存（`CASE_STUDY.md` §2）；或 `.uth.ps1 -Account <login>` 只钉本克隆（§10）；`push.ps1` 的"branch moved"遇 exit 4 是误报 |
+| 本机 push 报 `403 ... Permission to OWNER/REPO denied to OTHER-USER` | 凭据没问题、**账号没权限**：`.uth.ps1 -Accounts` 看谁能推 → `.uth.ps1 -Account <login>` 只钉本克隆（§10） |
+| 设了 `credential.https://github.com.helper` 却「没生效」 | helper 列表是**累加**的，机器级先应答：用 `.uth.ps1 -Account <login>`（先写空值清空列表再钉） |
 | 本机 `-c` 探针在每台 python 上都 Traceback | PS 5.1 调 native 会吞双引号：`-c` 里只准单引号（`CASE_STUDY.md` §5） |
 | 同一分支 Win＋WSL 双值守 | 会抢答/重复 verdict：只准一侧 live（`CASE_STUDY.md` §3） |
 
@@ -284,3 +297,23 @@ bash skills/git-sync/scripts/agent-handsfree.sh \
 
 用户侧升级：`.\sync.ps1` → `.\watch.ps1 -Unregister ; .\watch.ps1 -Register` → `.\watch.ps1 -Status`
 （应显示 `hands-free: master=True auto_pull=True auto_push=True`）。
+
+## 10. 多账号共存与切换（v2.9.0）
+
+一台机器常有**多个 GitHub 登录**（gh 可以存很多个，只有一个是 active）。克隆用的是 active 那个——仓库属于另一个号时，凭据完全有效，push 仍然 403
+`Permission to OWNER/REPO.git denied to OTHER-USER`。心跳/日志里看到 403 时，先把「凭据问题」和「权限问题」分开：
+
+```powershell
+.\auth.ps1 -Accounts                  # 每个 gh 登录一行 + 实测能否推本仓库
+.\auth.ps1 -Account shaohuawen03-cyber # 只把【这个克隆】钉到该账号
+.\auth.ps1 -Unpin                     # 还原（本克隆回到机器默认）
+.\auth.ps1 -Verify                    # 钉完立刻证明：push --dry-run PASSED
+```
+
+* **只动本文件夹**：pin 写在 `git config --local`，其他克隆（如 `git-pull-arena`）继续用机器默认账号，互不影响；
+* **为什么先清空**：`credential.helper` 是**累加**的，机器级 helper（GCM / 全局 gh）会排在前面先应答，只 `--add` 一条新 helper 等于没设。`-Account` 会先写一条空值**清空列表**再钉（git 2.39 / 2.54 实测），并把原机器级 helper 作为**后备**（值里含双引号时跳过，避免引号二次转义写成坏配置）；
+* **失败关闭**：pin 的命令形如
+  `!if T=$(... 'gh.exe' auth token -u NAME); then GH_TOKEN=$T ... git-credential; else exit 1; fi`——
+  账号被登出/令牌失效时**退出非零**，绝不悄悄改用 active 账号（空 `GH_TOKEN` 会让 gh 回落，那样会以错误身份推送）；
+* 想看机器默认是谁：`gh auth status`；要改机器默认（影响所有克隆）：`gh auth switch -u <login>`；
+* `doctor.ps1` 现在会打一行 `auth account`（本克隆 pin / gh active / 可选账号列表），`code/local_check.ps1` 也会把「本克隆 pin 到谁」写进每轮检查日志——agent 一眼就能分辨 403 的性质。

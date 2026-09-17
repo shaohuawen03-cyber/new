@@ -34,6 +34,14 @@
 #     .\auth.ps1 -Json -Verify        # machine readable (doctor + the local check read this)
 #     .\auth.ps1 -Unset               # undo what -Setup changed (keeps credentials)
 #
+# MULTI-ACCOUNT (one machine, several GitHub logins):
+#     .\auth.ps1 -Accounts            # every gh login + who can push to THIS repo
+#                                     #   (the 403 diagnosis: "the credential is
+#                                     #    fine, that account cannot write here")
+#     .\auth.ps1 -Account <login>     # pin THIS clone to one gh account; other
+#                                     #   clones keep the machine default
+#     .\auth.ps1 -Unpin               # drop the pin (machine default again)
+#
 # Nothing here ever prints the token. Exit codes: 0 ready / verified, 1 not ready.
 # ASCII-only on purpose (Windows PowerShell 5.1 decodes .ps1 as ANSI/GBK).
 # NB: inside a double-quoted string write "${name}:" - a bare "$name:" parses as
@@ -54,6 +62,9 @@ param(
     [string]$Token = '',
     [string]$TokenFile = '',
     [switch]$PromptToken,
+    [switch]$Accounts,
+    [string]$Account = '',
+    [switch]$Unpin,
     [string]$Config = '',
     [string]$Remote = ''
 )
@@ -157,6 +168,10 @@ if (-not $Remote) { $Remote = 'origin' }
 # red at the call site even when the call redirects 2>&1 - ugly and confusing
 # when the "error" is just GCM explaining that it wanted to prompt.
 function QuoteArg([string]$a) {
+    # an EMPTY argument must still be passed on (git config key "" is the
+    # documented way to RESET the credential helper list - dropping it would
+    # silently turn the write into a read)
+    if ($a -eq '') { return '""' }
     if ($a -match '[\s"]') { return '"' + ($a -replace '"', '""') + '"' }
     return $a
 }
@@ -280,6 +295,102 @@ function Save-Cred([string]$User, [string]$Pass, [string]$IntoStore = '') {
     }
 }
 
+# ------------------------------------------------------- multi-account support
+# A machine often carries SEVERAL GitHub logins (gh can hold many, exactly one
+# is "active"). A clone authenticates as the ACTIVE one - so when the repo
+# belongs to a different account the credential is perfectly valid and the push
+# still fails with 403 "Permission to OWNER/REPO.git denied to THE-OTHER-USER".
+# Field case 2026-09-17 (LAPTOP-R77M5D6M): repo shaohuawen03-cyber/new, machine
+# credential mqgg5630-cyber. Fix: pin THIS clone to one account through local
+# git config; every other clone on the machine keeps the default.
+function Get-RepoSlug {
+    if (-not $remoteUrl) { return '' }
+    if ($remoteUrl -match '[:/]([^/:]+)/([^/]+?)(\.git)?/?$') { return ($Matches[1] + '/' + $Matches[2]) }
+    return ''
+}
+function Get-GhAccountInfo {
+    # name + active flag per gh login (parses plain "gh auth status")
+    $accs = New-Object System.Collections.ArrayList
+    if (-not $ghVer) { return $accs }
+    $r = RunExe 'gh' @('auth', 'status')
+    $cur = $null
+    foreach ($ln in ($r.text -split "`r?`n")) {
+        if ($ln -match 'account\s+(\S+)') {
+            $cur = @{ name = $Matches[1]; active = $false }
+            $null = $accs.Add($cur)
+        } elseif ($cur -and $ln -match 'Active account:\s*true') {
+            $cur.active = $true
+        }
+    }
+    return $accs
+}
+function Get-PinnedAccount {
+    # a pin looks like: !GH_TOKEN=$(... 'gh.exe' auth token -u NAME) ... git-credential
+    $r = GitG @('config', '--local', '--get-all', 'credential.helper')
+    if ($r.code -ne 0) { return '' }
+    foreach ($ln in ($r.text -split "`r?`n")) {
+        if ($ln -match 'auth\s+token\s+-u\s+([^\s\)]+)') { return $Matches[1] }
+    }
+    return ''
+}
+function Test-GhAccount([string]$login) {
+    if (-not $ghVer -or -not $login) { return $false }
+    $r = RunExe 'gh' @('auth', 'token', '-u', $login)
+    return ($r.code -eq 0 -and $r.text.Trim() -ne '')
+}
+function Test-AccountPush([string]$login) {
+    # ask the API AS that account: .permissions.push answers the real question,
+    # including for public repos where an anonymous read works just fine
+    $slug = Get-RepoSlug
+    if (-not $slug) { return 'unknown' }
+    $old = $env:GH_TOKEN
+    $t = RunExe 'gh' @('auth', 'token', '-u', $login)
+    if ($t.code -ne 0) { return 'no-token' }
+    $env:GH_TOKEN = $t.text.Trim()
+    $r = RunExe 'gh' @('api', "repos/$slug", '--jq', '.permissions.push')
+    if ($old) { $env:GH_TOKEN = $old } else { Remove-Item Env:GH_TOKEN -ErrorAction SilentlyContinue }
+    if ($r.code -ne 0) { return 'unknown' }
+    $val = (($r.text -split "`r?`n") | Where-Object { $_ -match '\S' } | Select-Object -Last 1)
+    if ($val -match '^true')  { return 'yes' }
+    if ($val -match '^false') { return 'no' }
+    return 'unknown'
+}
+function Show-Accounts {
+    $slug   = Get-RepoSlug
+    $pinned = Get-PinnedAccount
+    $info   = Get-GhAccountInfo
+    $active = ''
+    foreach ($a in $info) { if ($a.active) { $active = $a.name } }
+    Say '== accounts (gh logins on this machine)' 'Cyan'
+    if (-not $ghVer) {
+        Say '   gh is not installed - the other route is .\auth.ps1 -Setup -PromptToken'
+        Say ''
+        return
+    }
+    Say ("   repo   : {0}" -f $(if ($slug) { $slug } else { "(cannot parse: $remoteUrl)" }))
+    if ($info.Count -eq 0) {
+        Say '   (no logged-in gh account - run gh auth login)'
+        Say ''
+        return
+    }
+    Say ("   active : {0}   <- the machine default, used by every clone" -f $active)
+    foreach ($a in $info) {
+        $tags = @()
+        if ($a.active) { $tags += 'active' }
+        if ($a.name -eq $pinned) { $tags += 'PINNED here' }
+        $push = Test-AccountPush $a.name
+        $pushTxt = 'unknown'
+        if     ($push -eq 'yes')      { $pushTxt = 'can push to this repo' }
+        elseif ($push -eq 'no')       { $pushTxt = 'CANNOT push here (403)' }
+        elseif ($push -eq 'no-token') { $pushTxt = 'no token (gh auth login)' }
+        Say ("   - {0,-24} {1,-18} {2}" -f $a.name, ($tags -join ','), $pushTxt)
+    }
+    Say '   pin THIS clone     : .\auth.ps1 -Account <login>'
+    Say '   back to default    : .\auth.ps1 -Unpin'
+    Say '   only this folder is pinned - every other clone keeps the default'
+    Say ''
+}
+
 $probe = Invoke-CredProbe ''
 
 # ------------------------------------------------------------------ unsets
@@ -350,6 +461,93 @@ if ($GhLogin) {
     # fall through: the verify block below runs when -Verify is also given
     $Setup = $true
     $probe = Invoke-CredProbe ''
+}
+
+# ------------------------------------------------------- per-clone account pin
+# The "two accounts on one machine" switch. It writes LOCAL git config of THIS
+# clone only, so the machine default - and every other clone - is untouched:
+# git-pull-arena keeps pushing as account A while this clone pushes as account B.
+if ($Account -or $Unpin) {
+    Say '== auth.ps1 account pin' 'Cyan'
+    if ($scheme -ne 'https') {
+        Bad "the remote is not https ($scheme) - a per-clone pin only applies to https"
+        exit 1
+    }
+    if ($Unpin) {
+        $any = $false
+        foreach ($k in @('credential.helper', ("credential.https://$hostName.helper"))) {
+            $r = GitG @('config', '--local', '--unset-all', $k)
+            if ($r.code -eq 0) {
+                Ok "removed the local pin: $k"
+                $null = $changed.Add("$k (local) unset")
+                $any = $true
+            }
+        }
+        if (-not $any) { Note 'this clone had no local pin - nothing to undo' }
+        Note 'the machine default is back in charge here (other clones were never touched)'
+    } else {
+        if (-not $ghVer) {
+            Bad 'gh is not installed - install it (winget install GitHub.cli), or store a PAT with -Setup -PromptToken'
+            exit 1
+        }
+        if (-not (Test-GhAccount $Account)) {
+            Bad "gh has no usable account '$Account' (not logged in, or no token)"
+            Note 'see the accounts:  .\auth.ps1 -Accounts'
+            Note "add it first:     gh auth login    (then: .\auth.ps1 -Account $Account)"
+            exit 1
+        }
+        # Full path on purpose: the credential helper runs from git's own shell,
+        # where PATH can differ from the console's (and session 0 has none).
+        $ghExe = ''
+        $gc = Get-Command gh -ErrorAction SilentlyContinue
+        if ($gc -and $gc.Source) { $ghExe = [string]$gc.Source }
+        $q = if ($ghExe) { "'" + $ghExe + "'" } else { 'gh' }
+        # Fail CLOSED: when the account has no token any more, the helper exits
+        # non-zero instead of quietly handing out the ACTIVE account's token
+        # (an empty GH_TOKEN makes gh fall back to the active account - that
+        # would silently push as the wrong user). No double quotes anywhere, so
+        # the value survives the trip through cmd unchanged.
+        #   !if T=$(... auth token -u NAME); then GH_TOKEN=$T ... git-credential; else exit 1; fi
+        $pin = '!if T=$(' + $q + ' auth token -u ' + $Account + '); then GH_TOKEN=$T ' + $q + ' auth git-credential; else exit 1; fi'
+        # An EMPTY credential.helper value RESETS the accumulated helper list.
+        # Without that reset git asks the machine-wide helpers FIRST (GCM, or the
+        # global gh helper = the ACTIVE account) and the pin is never consulted -
+        # which is exactly how "I set the helper and nothing changed" happens.
+        $r1 = GitG @('config', '--local', 'credential.helper', '')
+        $r2 = GitG @('config', '--local', '--add', 'credential.helper', $pin)
+        if ($r1.code -ne 0 -or $r2.code -ne 0) {
+            Bad "could not write the local pin: $(Brief $r2.text 2)"
+            exit 1
+        }
+        Ok "this clone now authenticates as '$Account' (local git config of this folder)"
+        $null = $changed.Add("credential.helper (local) pinned to gh account $Account")
+        if ($cfgState.helper -and $cfgState.helper -notmatch '"') {
+            # Keep the machine-wide helper as a FALLBACK - it is only consulted
+            # when the pin yields nothing (another host, or gh logged out).
+            # Skipped when the value contains double quotes: re-quoting such a
+            # value through cmd risks writing a broken helper entry, and a bad
+            # fallback is worse than none (the probe below would catch it).
+            $r3 = GitG @('config', '--local', '--add', 'credential.helper', $cfgState.helper)
+            if ($r3.code -eq 0) { Note "fallback kept after the pin: $($cfgState.helper)" }
+        } elseif ($cfgState.helper) {
+            Note 'machine-wide helper not re-added as a fallback (it contains quotes)'
+            Note 'if the pin ever fails you get a clear error instead of the wrong account'
+        }
+        $null = $notes.Add("account pin: $Account")
+    }
+    Say ''
+    $probe = Invoke-CredProbe ''
+    if ($probe.ok) {
+        if ($probe.user -eq $Account -or $probe.user -eq 'x-access-token') {
+            Ok "probe: the credential now comes from '$Account' (username=$($probe.user))"
+        } else {
+            Warn "probe returned username=$($probe.user) - expected '$Account' (still logged in?)"
+        }
+    } else {
+        Warn "no credential after the change: $($probe.detail)"
+    }
+    if (-not $SkipVerify) { $Verify = $true }
+    Say ''
 }
 
 # ------------------------------------------------------------------- setup
@@ -595,6 +793,13 @@ if ($Verify -or ($Setup -and -not $SkipVerify)) {
             } else {
                 $pushState = 'failed'; $pushText = Brief $r2.text 3
                 Bad "git push --dry-run : failed - $pushText"
+                if ($pushText -match '403|denied|Permission to') {
+                    Note 'this is a PERMISSION problem, not a missing credential:'
+                    Note 'the credential is valid, but THAT account cannot write to this repo.'
+                    Note 'one machine can hold several logins - pick the one that owns the repo:'
+                    Say ''
+                    Show-Accounts
+                }
             }
         } else {
             Note 'push dry-run skipped (-Quick)'
@@ -624,6 +829,12 @@ if ($Json) {
     $skillVer = ''
     $verFile = Join-Path $repo 'skills\git-sync\VERSION'
     if (Test-Path -LiteralPath $verFile) { $skillVer = (Get-Content -LiteralPath $verFile -Raw).Trim() }
+    $acctNames = @()
+    $acctActive = ''
+    foreach ($a in (Get-GhAccountInfo)) {
+        $acctNames += $a.name
+        if ($a.active) { $acctActive = $a.name }
+    }
     $obj = [ordered]@{
         skill                  = $skillVer
         repo                   = $repo
@@ -644,6 +855,10 @@ if ($Json) {
         gh                     = $ghVer
         gh_state               = $ghState
         gh_user                = $ghUser
+        accounts               = @($acctNames)
+        active_account         = $acctActive
+        pinned_account         = (Get-PinnedAccount)
+        repo_slug              = (Get-RepoSlug)
         credential_available   = $probe.ok
         credential_detail      = $probe.detail
         migrated               = $migrated
@@ -674,6 +889,9 @@ Say ("             credential.credentialStore = {0}" -f $storeTxt)
 Say ("             credential.interactive = {0}" -f $interTxt)
 Say ("             Git Credential Manager = {0}" -f $gcmTxt)
 Say ("             GitHub CLI = {0}" -f $ghTxt)
+$pinnedAcc = Get-PinnedAccount
+if ($pinnedAcc) { Say ("             account pin = {0}  (this clone only; local git config)" -f $pinnedAcc) }
+if ($Accounts) { Say ''; Show-Accounts }
 Say ''
 $probeTxt = if ($probe.ok) { "OK - $($probe.detail)" } else { "NOT AVAILABLE - $($probe.detail)" }
 Say ("   silent credential probe : {0}" -f $probeTxt)

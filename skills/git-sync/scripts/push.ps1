@@ -159,6 +159,8 @@ function Test-AuthFailure([string]$text) {
         'Support for password authentication was removed',
         'Permission denied \(publickey\)',
         '403 Forbidden',
+        'returned error: 403',
+        'Permission to .* denied',
         'Repository not found',
         'fatal: Authentication',
         'GCM_INTERACTIVE'
@@ -177,6 +179,10 @@ function Show-AuthHelp {
     Write-Host "         gh auth login                          # device code, no window to click" -ForegroundColor Yellow
     Write-Host "         .\push.ps1 -Prompt \"msg\"               # or let the login window appear once" -ForegroundColor Yellow
     Write-Host "       (the watcher cannot show a window at all - it needs the silent path)" -ForegroundColor Yellow
+    Write-Host "       BUT '403 ... Permission to OWNER/REPO denied to OTHER-USER' is not a" -ForegroundColor Yellow
+    Write-Host "       login problem - the credential works, that ACCOUNT cannot write here:" -ForegroundColor Yellow
+    Write-Host "         .\auth.ps1 -Accounts             # which gh login can push to this repo" -ForegroundColor Yellow
+    Write-Host "         .\auth.ps1 -Account <login>     # pin THIS clone to it (others keep the default)" -ForegroundColor Yellow
 }
 
 # git refuses to commit without an identity; set a local one if missing

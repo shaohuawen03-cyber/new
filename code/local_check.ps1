@@ -92,6 +92,24 @@ if (Test-Path -LiteralPath '.\auth.ps1') {
     $fail = 1
 }
 
+#    2a2. multi-account (v2.9.0): which gh login will this clone push with?
+#         Informational on purpose - a clone WITHOUT a pin is normal (it uses
+#         the machine default). Reporting it lets the agent read a 403 as a
+#         permission problem instead of a broken credential.
+$pinnedAcc = ''
+try {
+    $pinLines = @(& git config --local --get-all credential.helper 2>$null)
+    foreach ($pl in $pinLines) {
+        if ($pl -match 'auth\s+token\s+-u\s+([^\s\)]+)') { $pinnedAcc = $Matches[1]; break }
+    }
+} catch { }
+if ($pinnedAcc) {
+    Write-Output ("== auth: this clone is PINNED to gh account '" + $pinnedAcc + "' (other clones use the machine default)")
+} else {
+    Write-Output '== auth: no per-clone account pin (the machine default account is used)'
+    Write-Output '   a push answering 403 "Permission to ... denied to OTHER-USER": .\auth.ps1 -Accounts'
+}
+
 #    2b. how visible is the watcher? Graded, and the grade is printed:
 #          zero-window launcher  -> nothing ever appears            (best)
 #          S4U / session 0       -> nothing ever appears            (best, needs admin)

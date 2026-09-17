@@ -1,3 +1,4 @@
+> 当前版本 **v2.9.0**（多账号）：`auth.ps1` 新增 `-Accounts` / `-Account <login>` / `-Unpin`——一台机器多个 GitHub 登录时，把**单个克隆**钉到有权推它的账号，其他克隆不受影响；403 `Permission to ... denied to OTHER-USER` 归位为「权限问题」；`doctor` 与 `local_check.ps1` 会报当前账号/pin。见「二·六」。
 > 当前版本 **v2.8.1**（放开沙箱工具链限制：`pip`/`.venv`/python-docx 随便用，只禁「冒充本机」；安装器不再降级 + 取最新分支；值守每行带时间戳；轮询自适应提速；`.gitattributes` 统一 LF 修 CRLF 假失败）。成功案例 `deliverable/CASE_STUDY_v2.8.0.md`。`main` 上是 **v2.6.7**。
 
 # 本地 ↔ Agent 同步 skill —— 使用说明
@@ -78,6 +79,9 @@
 .\doctor.ps1 -Fix                         # 一键修复：重建 refspec + stash + 切回分支 + 拉取
 .\hardware.ps1 -Deep                      # 采集本机硬件/conda环境报告并推送（每台机器一次；变化后重跑）
 .\auth.ps1 -Setup -Verify                 # 一次性：把推送配成免点击，并用实跑证明（不弹窗）
+.\auth.ps1 -Accounts                     # 多账号：本机 gh 登录 + 各自能否推本仓库
+.\auth.ps1 -Account shaohuawen03-cyber    # 只把本克隆钉到这个账号（其他克隆不动）
+.\auth.ps1 -Unpin                       # 去掉本克隆的 pin，回到机器默认账号
 .\auth.ps1                                # 看现在推送会用哪套凭据、能不能静默完成
 .\watch.ps1 -Register                     # 自动验证循环：注册本机值守（每2分钟；默认零窗口）
 .\watch.ps1 -Status                       # 值守活着吗：模式 / 上次运行 / 心跳 / 最近一轮结果
@@ -164,6 +168,26 @@ python 版本、哪个环境的 torch 能用 CUDA——计算类工作开工前�
 长任务（本机即 Runner）记得**同步调大**两个值：`check_timeout_min`（单轮硬超时，默认 30）与
 `lock_stale_min`（锁过期，默认 45，必须大于超时）；`watch.ps1 -Register -CheckTimeoutMin 120` 也能临时覆盖。
 
+## 二·六、多账号共存 / 切换（v2.9.0）
+
+一台机器多个 GitHub 登录是常态（本机：默认 `mqgg5630-cyber`，仓库主 `shaohuawen03-cyber`）。
+克隆默认用 gh 的 **active** 账号——号不对时凭据有效、push 仍 403：
+
+```powershell
+.\auth.ps1 -Accounts                      # 每个登录一行 + 实测 permissions.push
+.\auth.ps1 -Account shaohuawen03-cyber     # 只钉这个克隆（local git config）
+.\auth.ps1 -Unpin                         # 还原
+```
+
+| 机制 | 说明 |
+|---|---|
+| 作用域 | 只写本克隆 `git config --local`；其他克隆照旧用机器默认（`gh auth switch -u X` 才是改全局默认） |
+| 先清空再钉 | `credential.helper` 是累加列表，机器级 helper（GCM / 全局 gh = active 账号）会先应答；`-Account` 先写一条**空值**清空列表再钉（git 2.39 / 2.54 实测） |
+| 后备 | 原机器级 helper 会被追加为后备；值中含双引号时跳过（避免 cmd 引号二次转义写出坏配置） |
+| 失败关闭 | pin 命令 `!if T=$(gh auth token -u NAME); then GH_TOKEN=$T gh auth git-credential; else exit 1; fi`——账号登出/令牌失效直接非零退出，绝不悄悄用 active 账号 |
+| 可视化 | `doctor.ps1` 打 `auth account` 行；`code/local_check.ps1` 每轮把 pin 写进日志；`push.ps1` 遇 403 直接给出这两条命令 |
+
+
 ## 三、为什么 `.ps1` 里绝对不能写中文
 
 Windows PowerShell 5.1 读**没有 BOM** 的 `.ps1` 时按 **ANSI/GBK** 解码；UTF-8 的中文注释会变成乱码，
@@ -204,6 +228,8 @@ gate（`code/check_all.sh`）提交前自动扫描全部 `.ps1`，非 ASCII 直�
 | `gh auth login` 超时 / `dial tcp ...:443 did not properly respond` | 网络路径问题，不是脚本：git 可能走了 `git config http.proxy`，而 gh 只认 `HTTPS_PROXY`。用 `.\auth.ps1 -GhLogin -HttpProxy http://127.0.0.1:7890`，或 `setx HTTPS_PROXY ...` 后重开窗口；不想折腾 gh 就 `.\auth.ps1 -Setup -PromptToken`（离线入库） |
 | `git stash list` 越积越多 | v2.6.1 起值守产物改为本地提交；历史堆积用 `git stash list` 检查后 `git stash clear`（确认没有你要的改动） |
 | 要密码 / 认证失败 / 推送卡着等确认 | `.\auth.ps1 -Setup` → `.\auth.ps1 -Verify`（一次配好免点击；两者都支持 `-Json`）。**如果 `-Setup` 之后反而开始要登录**：`.\auth.ps1 -MigrateStore` 或 `.\auth.ps1 -Unset`（把 `credentialStore` 改回默认，原来的凭据立刻可见） |
+| `403 ... Permission to OWNER/REPO denied to OTHER-USER` | 凭据没问题，**账号没权限**：`.\auth.ps1 -Accounts` → `.\auth.ps1 -Account <login>`（只钉本克隆）；或浏览器把该号加为仓库 Collaborator |
+| 设了 `credential.https://github.com.helper` 却没生效 | helper 列表是累加的，机器级先应答；用 `.\auth.ps1 -Account <login>`（先清空再钉） |
 | 值守注册时直接抛 ParserError（脚本一行都没跑） | 检查有没有 `"$var:"` 这种写法：`$round:` 会被当成盘符变量，**整份脚本解析失败**。gate 的 `code/scan_ps_var_colon.py` 会替你先扫出来 |
 | 计划任务报 `Disabled` / 心跳文件不存在 | 任务被 `-Pause` / `-Focus` 过或从未成功注册：本克隆 `.\watch.ps1 -Focus` 或 `.\watch.ps1 -Resume`；一次全恢复 `.\watch.ps1 -RestoreParked`；真要重来才 `-Unregister` → `-Register` |
 | 值守推送一直不成功（agent 说"还在等"） | `.\watch.ps1 -Status` 看心跳与 `last_push`；`auth: no silent credential` 就是没配凭据，跑 `.\auth.ps1 -Setup` |
@@ -296,6 +322,7 @@ cd E:\0github\git-sync\<目标仓库>
 - [x] 安装器：根目录精简安装（无 skills 夹）的 `sync.config.json` 升级时同样保留（AgentArena 场景）
 - [x] 安装器补漏：`hardware.ps1` / `watch.ps1` 进根目录复制清单（v2.2 漏 hardware，由另一 Arena 会话实战发现）
 - [x] LFS / 大文件体检（>50 MB 提醒）
+- [x] **多账号**（v2.9.0）：`auth.ps1 -Accounts` / `-Account <login>` / `-Unpin`，按克隆钉账号、失败关闭；`doctor`、`local_check.ps1`、`push.ps1` 三处联动
 
 还想加的（按需）：
 
