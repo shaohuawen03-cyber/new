@@ -10,13 +10,16 @@
     "skills/git-sync/sync.config.json",
     "code/check_all.sh",
     "code/local_check.ps1",
+    "code/check_loop_summary.ps1",
     "results/status/handshake.json"
   ],
   "forbid_files": [
     "local/inbox"
   ],
   "require_contains": {
-    "skills/git-sync/sync.config.json": "\"hands_free\": true"
+    "skills/git-sync/sync.config.json": "\"hands_free\": true",
+    "skills/git-sync/VERSION": "2.9.0",
+    "auth.ps1": "auth.ps1 -Accounts"
   },
   "min_bytes": {
     "watch.ps1": 20000

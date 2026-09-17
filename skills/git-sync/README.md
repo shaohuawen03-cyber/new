@@ -322,6 +322,7 @@ cd E:\0github\git-sync\<目标仓库>
 - [x] 安装器：根目录精简安装（无 skills 夹）的 `sync.config.json` 升级时同样保留（AgentArena 场景）
 - [x] 安装器补漏：`hardware.ps1` / `watch.ps1` 进根目录复制清单（v2.2 漏 hardware，由另一 Arena 会话实战发现）
 - [x] LFS / 大文件体检（>50 MB 提醒）
+- [x] 安装器补齐 `code/check_loop_summary.ps1` / `.py`（v2.9.0；此前只有 `install.ps1` 会拷，bash 安装器缺，导致本机检查 2c 每轮都 WARN）
 - [x] **多账号**（v2.9.0）：`auth.ps1 -Accounts` / `-Account <login>` / `-Unpin`，按克隆钉账号、失败关闭；`doctor`、`local_check.ps1`、`push.ps1` 三处联动
 
 还想加的（按需）：

@@ -254,6 +254,20 @@ if [ -f "$REPO/skills/git-sync/templates/scan_ps_var_colon.py" ] && [ ! -f "$REP
   echo "OK: code/scan_ps_var_colon.py created (gate helper: catches \$var: typos)"
 fi
 
+# 5a2. the watcher closing-line checkers (create only). local_check.ps1 section
+#      2c runs code/check_loop_summary.ps1 and the gate falls back to the python
+#      twin; without either, a fresh install always printed "[WARN] accept 2c:
+#      code\\check_loop_summary.ps1 is missing" - seen in the round-1 log on
+#      LAPTOP-R77M5D6M (2026-09-17). install.ps1 always copied them; the bash
+#      installer only copied the scanner above.
+for h in check_loop_summary.ps1 check_loop_summary.py; do
+  if [ -f "$REPO/skills/git-sync/templates/$h" ] && [ ! -f "$REPO/code/$h" ]; then
+    mkdir -p "$REPO/code"
+    cp "$REPO/skills/git-sync/templates/$h" "$REPO/code/$h"
+    echo "OK: code/$h created (watch.ps1 closing-line check)"
+  fi
+done
+
 # 5b. the local check template for the auto-verification loop (create only)
 if [ ! -f "$REPO/code/local_check.ps1" ] && [ -f "$REPO/skills/git-sync/templates/local_check.ps1" ]; then
   mkdir -p "$REPO/code"
