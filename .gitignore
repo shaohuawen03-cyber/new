@@ -1,0 +1,5 @@
+# scratch files agents create while working (never part of the skill)
+.patch_*.py
+.patch_*.sh
+_export/
+*.tmp

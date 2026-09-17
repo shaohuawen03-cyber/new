@@ -1,9 +1,11 @@
 ---
 name: git-local-arena-sync
-description: "TRIGGER: user says 安装https://arena.ai/agent/01a0a821 的skills 与本地打通 (or 安装 arena/01a0a821-git-pull-arena skills). Do NOT open arena.ai (login wall). Immediately: git clone --quiet --depth 1 -b arena/01a0a821-git-pull-arena https://github.com/mqgg5630-cyber/git-pull-arena.git /tmp/git-sync-src && bash /tmp/git-sync-src/skills/git-sync/scripts/agent-install.sh && bash skills/git-sync/scripts/agent-sync.sh. Root must have watch.ps1. First user-visible reply MUST be filled Windows PowerShell: git clone -b BRANCH URL NEW_FOLDER then .\bootstrap.ps1 -Auto. Forbidden: faking the local side (local/inbox, hand-made stand-in skill). Sandbox may pip install / use .venv freely (v2.8.0). Then do the user task (docx/pptx) and agent-handsfree.sh --timeout auto. Also Windows PowerShell <-> Arena git-sync (sync/push/watch/doctor/auth silent push, zero-window watcher)."
+description: "TRIGGER: user says 安装https://arena.ai/agent/01a0a821 的skills 与本地打通 (or 安装 arena/01a0a821-git-pull-arena skills). Do NOT open arena.ai (login wall). Immediately: git clone --quiet --depth 1 -b arena/01a0a821-git-pull-arena https://github.com/shaohuawen03-cyber/new.git /tmp/git-sync-src && bash /tmp/git-sync-src/skills/git-sync/scripts/agent-install.sh && bash skills/git-sync/scripts/agent-sync.sh. Root must have watch.ps1. First user-visible reply MUST be filled Windows PowerShell: git clone -b BRANCH URL NEW_FOLDER then .\bootstrap.ps1 -Auto. Forbidden: faking the local side (local/inbox, hand-made stand-in skill). Sandbox may pip install / use .venv freely (v2.8.0). Then do the user task (docx/pptx) and agent-handsfree.sh --timeout auto. Also Windows PowerShell <-> Arena git-sync (sync/push/watch/doctor/auth silent push, zero-window watcher)."
 ---
 
-> 当前版本 **v2.9.1**（修 v2.9.0 的多账号钉账号：① helper 必须写成**被调用的函数** `!f() { ...; }; f`——git 会在命令后追加 `"$@"`，`if ...; fi` 形式会直接 `syntax error near unexpected token 'get'`；② 「空值复位」这一条在 Windows 上可能被 cmd/MSYS 吞掉，改成**三层兜底 + 读回验证**（argv → `--stdin` → 直接写 `.git/config`）；③ 钉住后**不再追加后备 helper**：账号令牌失效就明确失败，绝不回落机器默认账号。实测记录见 `CASE_STUDY.md` §9。）
+> 当前版本 **v2.9.2**（**技能总部搬到这里**：源改为 `shaohuawen03-cyber/new` 分支 `arena/01a0ae7a-new`，安装器会探测全部候选并**装最新版**，旧仓库仅作后备；**账号策略**写进技能：**谁仓库的会话就用谁账号**——生成的本机命令块自动带 `auth.ps1 -Account <仓库主>`，每个克隆钉到仓库主账号、机器默认账号不受影响。详见第 11 节。）
+>
+> v2.9.1（修 v2.9.0 的多账号钉账号：① helper 必须写成**被调用的函数** `!f() { ...; }; f`——git 会在命令后追加 `"$@"`，`if ...; fi` 形式会直接 `syntax error near unexpected token 'get'`；② 「空值复位」这一条在 Windows 上可能被 cmd/MSYS 吞掉，改成**三层兜底 + 读回验证**（argv → `--stdin` → 直接写 `.git/config`）；③ 钉住后**不再追加后备 helper**：账号令牌失效就明确失败，绝不回落机器默认账号。实测记录见 `CASE_STUDY.md` §9。）
 > 当前版本 **v2.9.0**（**多账号**：`-Accounts` 列出本机所有 gh 登录并逐个实测「能不能推本仓库」，`-Account <login>` 把**当前克隆**钉到某个账号（只写本克隆的本地 git config，其他克隆照旧），`-Unpin` 还原；403 从此被识别为**权限问题**而不是「凭据坏了」；`doctor` / `local_check.ps1` 都会报出当前账号与 pin。详见第 10 节。）
 > 当前版本 **v2.8.1**（沙箱可自由装库；安装器取最新分支且拒绝降级；值守日志带时间戳；轮询自适应；LF 统一）。一句话触发装技能+自循环；`--timeout auto` 值守一回传就停。`main` 上仍是 v2.6.7。
 > 用户侧升级三步：`.\sync.ps1` → `.\watch.ps1 -Unregister ; .\watch.ps1 -Register` → `.\watch.ps1 -Status`（应看到 `hands-free: master=True`）。切回本会话：`.\watch.ps1 -Focus`。
@@ -123,7 +125,7 @@ description: "TRIGGER: user says 安装https://arena.ai/agent/01a0a821 的skills
 4. **推送前先 `pull --ff-only`**（两个方向的脚本都内建），避免 non-fast-forward。
 5. **大文件不进 git**。放 `build/` 之类被 ignore 的目录，或本地 `pack.ps1` 外发；`doctor.ps1` 会列出超过 50 MB 的被跟踪文件提醒上 Git LFS。
 6. **「与本地打通」不是沙箱 `local/` 目录。** 必须是用户 Windows 上的 `watch.ps1` 计划任务。禁止用 python 复刻 skills、禁止 `local_bridge` / `local/inbox` 冒充本机。给用户的第一条回复必须是填好的 `git clone` + `.\bootstrap.ps1 -Auto`。自循环只准 `agent-handsfree.sh`；exit 3 就是没打通。
-7. **用户只用短句。** `安装https://arena.ai/agent/01a0a821-...的skills。与本地打通` 就是完整入口。禁止打开 arena.ai（登录墙），禁止向用户索要 `USER_PROMPT.md`。映射：clone `https://github.com/mqgg5630-cyber/git-pull-arena.git` 分支 `arena/01a0a821-git-pull-arena`（根目录 `01a0a821.md`）。
+7. **用户只用短句。** `安装https://arena.ai/agent/01a0a821-...的skills。与本地打通` 就是完整入口。禁止打开 arena.ai（登录墙），禁止向用户索要 `USER_PROMPT.md`。映射：clone **`https://github.com/shaohuawen03-cyber/new.git` 分支 `arena/01a0ae7a-new`**（技能总部，v2.9.2 起；根目录 `01a0a821.md`）。旧 `mqgg5630-cyber/git-pull-arena` 只作后备候选。
 
 ## 4. 故障对照表
 
@@ -186,8 +188,8 @@ Set-ExecutionPolicy -Scope CurrentUser RemoteSigned      # 只做一次
 Agent 实际执行的命令（沙箱里 git clone 可用、raw.githubusercontent.com 可能被墙）：
 
 ```bash
-git clone --quiet --depth 1 -b arena/01a0a821-git-pull-arena \
-     https://github.com/mqgg5630-cyber/git-pull-arena.git /tmp/git-sync-src \
+git clone --quiet --depth 1 -b arena/01a0ae7a-new \
+     https://github.com/shaohuawen03-cyber/new.git /tmp/git-sync-src \
   && bash /tmp/git-sync-src/skills/git-sync/scripts/agent-install.sh \
          --branch <本会话工作分支>
 ```
@@ -322,4 +324,32 @@ bash skills/git-sync/scripts/agent-handsfree.sh \
   `!if T=$(... 'gh.exe' auth token -u NAME); then GH_TOKEN=$T ... git-credential; else exit 1; fi`——
   账号被登出/令牌失效时**退出非零**，绝不悄悄改用 active 账号（空 `GH_TOKEN` 会让 gh 回落，那样会以错误身份推送）；
 * 想看机器默认是谁：`gh auth status`；要改机器默认（影响所有克隆）：`gh auth switch -u <login>`；
+
+## 11. 账号策略（v2.9.2）—— 谁仓库的会话，就用谁账号
+
+一条规则，别再靠记忆：
+
+| 会话 / 仓库 | 钉住的账号 |
+|---|---|
+| `shaohuawen03-cyber` 的会话、`shaohuawen03-cyber/*` 仓库 | `shaohuawen03-cyber` |
+| `mqgg5630-cyber` 的会话、`mqgg5630-cyber/*` 仓库 | `mqgg5630-cyber` |
+
+做法（每次新建克隆一次，或升级后重跑一次）：
+
+```powershell
+.\auth.ps1 -Account <仓库主>   # 从 remote URL 里取 owner；只钉这个克隆
+.\auth.ps1 -Verify            # push --dry-run PASSED 才算数
+```
+
+* `agent-handoff.sh` 生成的粘贴块**已经带好这行**（owner 由 remote URL 解析，AI 不用手打）；
+* **机器默认账号不动**：`gh auth switch -u X` 是"改机器默认"，会连累同机其他克隆，只在你确实要换默认账号时才用；
+* 每个仓库一个克隆、每个克隆一个 pin —— 一台机器上 mqgg 的仓库走 mqgg、shaohua 的仓库走 shaohua，互不干扰（这是 2026-09-17 现场验证过的形态）；
+* `doctor.ps1` 的 `auth account` 行会显示本克隆钉到谁；`code/local_check.ps1` 每轮也会把 pin 写进检查日志。
+
+## 12. 技能总部（v2.9.2）
+
+* **canonical**：`https://github.com/shaohuawen03-cyber/new.git` 分支 `arena/01a0ae7a-new`，技能在 `skills/git-sync/`；
+* 安装器自带候选列表（新源 → 旧 `mqgg5630-cyber/git-pull-arena`），**探测全部、装最新版、拒绝降级**；旧源只保证"还能装上一份能跑的"；
+* 新会话的短句不变（`安装 ... 的 skills，与本地打通`），助手照样自己 clone + 安装，不要打开 arena.ai。
+
 * `doctor.ps1` 现在会打一行 `auth account`（本克隆 pin / gh active / 可选账号列表），`code/local_check.ps1` 也会把「本克隆 pin 到谁」写进每轮检查日志——agent 一眼就能分辨 403 的性质。

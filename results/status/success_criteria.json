@@ -1,5 +1,5 @@
 {
-  "description": "本地与 Arena 打通：技能就位 + 本机值守注册 + 一轮检查回传（verdict 落在 handshake）",
+  "description": "技能总部=arena/01a0ae7a-new（安装器多候选取最新）+ 账号策略（每克隆钉仓库主账号）+ 本机值守往返",
   "require_files": [
     "watch.ps1",
     "bootstrap.ps1",
@@ -18,8 +18,9 @@
   ],
   "require_contains": {
     "skills/git-sync/sync.config.json": "\"hands_free\": true",
-    "skills/git-sync/VERSION": "2.9.1",
-    "auth.ps1": "}; f'"
+    "skills/git-sync/VERSION": "2.9.2",
+    "skills/git-sync/scripts/agent-install.sh": "shaohuawen03-cyber/new.git|arena/01a0ae7a-new",
+    "skills/git-sync/scripts/agent-handoff.sh": "push as the REPO OWNER's account"
   },
   "min_bytes": {
     "watch.ps1": 20000

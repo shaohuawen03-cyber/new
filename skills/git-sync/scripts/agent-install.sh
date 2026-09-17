@@ -4,11 +4,13 @@
 #
 # One-liner for a brand-new Arena session (run inside the target repo; git
 # clone works in the sandboxes where raw.githubusercontent.com is blocked):
-#   git clone --quiet --depth 1 -b arena/01a0a821-git-pull-arena \
-#        https://github.com/mqgg5630-cyber/git-pull-arena.git /tmp/git-sync-src \
+#   git clone --quiet --depth 1 -b arena/01a0ae7a-new \
+#        https://github.com/shaohuawen03-cyber/new.git /tmp/git-sync-src \
 #     && bash /tmp/git-sync-src/skills/git-sync/scripts/agent-install.sh \
 #            --branch <working-branch>
-# (after the skill is merged to main, use: -b main ... /tmp/git-sync-src)
+# v2.9.2: the skill's home is arena/01a0ae7a-new on shaohuawen03-cyber/new
+# ("future sessions install from THIS branch"); the legacy
+# mqgg5630-cyber/git-pull-arena stays as a fallback candidate.
 #
 # From a local checkout of the skill source repo:
 #   bash agent-install.sh [--repo /path/to/target] [--branch arena/xxx] \
@@ -30,8 +32,20 @@
 
 set -u -o pipefail
 
-DEFAULT_SOURCE_REPO="https://github.com/mqgg5630-cyber/git-pull-arena.git"
-DEFAULT_SOURCE_BRANCHES=("arena/01a0a98d-git-pull-arena" "main")
+# Candidate sources, canonical first. Each entry is "repo|branch": the
+# installer probes them all and installs the NEWEST skill it finds (it never
+# downgrades). v2.9.2 moved the skill home to the branch the user pointed at;
+# the legacy repo stays last so an older machine still gets a working skill.
+SOURCE_CANDIDATES=(
+  "https://github.com/shaohuawen03-cyber/new.git|arena/01a0ae7a-new"
+  "https://github.com/shaohuawen03-cyber/new.git|main"
+  "https://github.com/mqgg5630-cyber/git-pull-arena.git|arena/01a0a98d-git-pull-arena"
+  "https://github.com/mqgg5630-cyber/git-pull-arena.git|arena/01a0a821-git-pull-arena"
+  "https://github.com/mqgg5630-cyber/git-pull-arena.git|main"
+)
+# kept for the usage text and for callers that still reference them
+DEFAULT_SOURCE_REPO="https://github.com/shaohuawen03-cyber/new.git"
+DEFAULT_SOURCE_BRANCHES=("arena/01a0ae7a-new" "main")
 
 REPO=""; BRANCH=""; SOURCE=""; SOURCE_BRANCH=""; GHA=0; FORCE=0
 while [ $# -gt 0 ]; do
@@ -88,15 +102,15 @@ cleanup() {
 }
 trap cleanup EXIT
 
-fetch_source() {  # $1 url  $2 branch -> prints the work dir with that branch checked out
-  local url="$1" br="$2"
-  if [ ! -d "$WORKDIR/.git" ]; then
-    git clone --quiet --depth 1 --single-branch --no-tags --branch "$br" "$url" "$WORKDIR" 2>/dev/null || return 1
+fetch_source() {  # $1 url  $2 branch  $3 dir -> prints the dir with that branch checked out
+  local url="$1" br="$2" dir="$3"
+  if [ ! -d "$dir/.git" ]; then
+    git clone --quiet --depth 1 --single-branch --no-tags --branch "$br" "$url" "$dir" 2>/dev/null || return 1
   else
-    git -C "$WORKDIR" fetch --quiet --depth 1 origin "+refs/heads/$br:refs/remotes/origin/$br" 2>/dev/null || return 1
-    git -C "$WORKDIR" checkout --quiet --force -B "probe-$br" "origin/$br" 2>/dev/null || return 1
+    git -C "$dir" fetch --quiet --depth 1 origin "+refs/heads/$br:refs/remotes/origin/$br" 2>/dev/null || return 1
+    git -C "$dir" checkout --quiet --force -B "probe-$br" "origin/$br" 2>/dev/null || return 1
   fi
-  echo "$WORKDIR"
+  echo "$dir"
 }
 
 SRC=""; LOCAL_SOURCE=0
@@ -115,19 +129,29 @@ if [ -n "$SOURCE" ]; then
     echo "== source: $SOURCE ($SOURCE_BRANCH)"
   fi
 else
-  # Try the branches in order (newest first) and take the FIRST one that carries
-  # the skill. The order matters: `main` used to win this loop and silently
-  # install an older release (v2.6.7) over a newer working branch, deleting the
-  # newer files with it. The downgrade guard below catches the rest.
-  for B in "${DEFAULT_SOURCE_BRANCHES[@]}"; do
-    TRY="$(fetch_source "$DEFAULT_SOURCE_REPO" "$B")"
-    if [ -n "$TRY" ] && [ -d "$TRY/skills/git-sync" ]; then
-      SRC="$TRY"; SRC_BRANCH_USED="$B"
-      echo "== source: $DEFAULT_SOURCE_REPO ($B) - skill v$(read_ver "$TRY/skills/git-sync")"
-      break
+  # Probe every candidate and keep the NEWEST skill found ("first branch wins"
+  # could pick an older release over a newer one - comparing versions is the
+  # only honest ordering). Ties keep the earlier candidate, i.e. the canonical
+  # source. The no-downgrade guard below still protects the installed copy.
+  _idx=0; _best_ver=""; _best_dir=""; _best_repo=""; _best_branch=""
+  for _pair in "${SOURCE_CANDIDATES[@]}"; do
+    _repo="${_pair%%|*}"; _branch="${_pair##*|}"
+    _idx=$((_idx + 1))
+    TRY="$(fetch_source "$_repo" "$_branch" "$WORKDIR/$_idx")" || TRY=""
+    if [ -z "$TRY" ] || [ ! -d "$TRY/skills/git-sync" ]; then
+      echo "== no skill on $_branch @ $_repo - trying the next candidate"
+      continue
     fi
-    echo "== no skill on $B - trying the next candidate branch"
+    _v="$(read_ver "$TRY/skills/git-sync")"
+    echo "== candidate: $_repo ($_branch) - skill v$_v"
+    if [ -z "$_best_dir" ] || ! ver_ge "$_best_ver" "$_v"; then
+      _best_ver="$_v"; _best_dir="$TRY"; _best_repo="$_repo"; _best_branch="$_branch"
+    fi
   done
+  if [ -n "$_best_dir" ]; then
+    SRC="$_best_dir"; SRC_BRANCH_USED="$_best_branch"
+    echo "== source: $_best_repo ($_best_branch) - newest skill v$_best_ver"
+  fi
 fi
 
 [ -n "$SRC" ] && [ -d "$SRC/skills/git-sync" ] || {

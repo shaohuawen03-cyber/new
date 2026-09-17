@@ -15,7 +15,7 @@ git clone -b <工作分支> https://github.com/<owner>/<repo>.git               
 .\doctor.ps1                                                                       # 4) 体检：三行都应是好消息
 ```
 
-- 第 2 行的分支就是 `sync.config.json` 里的 `branch`（本仓库当前是 `arena/01a0a821-git-pull-arena`）。
+- 第 2 行的分支就是 `sync.config.json` 里的 `branch`（技能总部当前是 `arena/01a0ae7a-new`；你自己仓库用你自己的分支）。
   `push.ps1` 会直接拒绝 main/master，所以克隆错分支会立刻暴露，不会静默推坏东西。
 - 第 3 行 `-Auto` 等价于 `bootstrap.ps1` + `auth.ps1 -Setup -Verify` + `watch.ps1 -Register` 三步。
 - `-Register`（v2.6.9）会**暂停其他会话**的 `git-sync-watch-*`（任务保留、循环停掉）。切回本会话 HQ：`cd E:\0github\git-sync\git-pull-arena-s2 ; .\watch.ps1 -Focus`。不想动别人：`.\watch.ps1 -Register -KeepOthers`。

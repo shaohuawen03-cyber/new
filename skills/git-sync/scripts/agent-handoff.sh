@@ -68,6 +68,13 @@ REPO_NAME="$(basename "$URL" .git)"
 SHORT="${BRANCH#arena/}"; SHORT="${SHORT%%-*}"
 [ -z "$FOLDER" ] && FOLDER="${REPO_NAME}-${SHORT}"
 
+# The account policy (v2.9.2): a conversation/repo that belongs to an account
+# pushes with THAT account. The repo owner is the account that must be pinned;
+# the machine default stays whatever the user normally uses. So the pasted
+# block gets a .\auth.ps1 -Account <owner> line.
+OWNER="$(printf '%s' "$URL" | sed -n 's#.*[:/]\([^/:]*\)/[^/]*$#\1#p')"
+case "$OWNER" in ""|*" "*|*"@"*) OWNER="" ;; esac
+
 if [ "$BRANCH" != "$HEAD_BRANCH" ]; then
   echo "[REFUSED] sync.config.json branch=$BRANCH but HEAD is $HEAD_BRANCH" >&2
   echo "          the watcher would poll a branch nobody pushes to." >&2
@@ -79,13 +86,21 @@ PUSHED="yes"
 git ls-remote --exit-code --heads "$REMOTE" "refs/heads/$BRANCH" >/dev/null 2>&1 || PUSHED="no"
 
 if [ "$JSON" = 1 ]; then
-  python3 - "$URL" "$BRANCH" "$FOLDER" "$PUSHED" "$REPO_NAME" <<'PY'
+  python3 - "$URL" "$BRANCH" "$FOLDER" "$PUSHED" "$REPO_NAME" "$OWNER" <<'PY'
 import json, sys
-url, branch, folder, pushed, repo = sys.argv[1:6]
+url, branch, folder, pushed, repo, owner = sys.argv[1:7]
 print(json.dumps({"url": url, "branch": branch, "folder": folder,
-                  "branch_pushed": pushed == "yes", "repo": repo}, ensure_ascii=False))
+                  "branch_pushed": pushed == "yes", "repo": repo,
+                  "owner": owner, "account": owner}, ensure_ascii=False))
 PY
   exit 0
+fi
+
+PIN_LINE=''
+ACCT_LINE=''
+if [ -n "$OWNER" ]; then
+  PIN_LINE=".\auth.ps1 -Account $OWNER    # policy: push as the REPO OWNER's account"
+  ACCT_LINE="   account   : $OWNER  (the repo owner - this clone is pinned to it)"
 fi
 
 cat <<EOF
@@ -97,6 +112,7 @@ git clone -b $BRANCH $URL $FOLDER
 cd $FOLDER
 Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 .\\bootstrap.ps1 -Auto      # identity + branch + silent-push auth + register the watcher
+${PIN_LINE}
 .\\doctor.ps1               # branch=$BRANCH, ahead/behind 0/0, watcher/heartbeat/auth OK
 .\\watch.ps1 -Status
 \`\`\`
@@ -105,6 +121,7 @@ Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
    branch    : $BRANCH  (pushed to $REMOTE: $PUSHED)
    folder    : $FOLDER   (a NEW folder - never overwrite an existing clone)
    watcher   : git-sync-watch-$FOLDER
+${ACCT_LINE}
 EOF
 
 if [ "$PUSHED" = "no" ]; then

@@ -1,7 +1,8 @@
 # 新会话：用户一句话，助手自动装技能、打通本机、按需自循环
 
 > 用户**只发一句话**（可带 Arena 链接、可带具体任务）。完整动作清单在 `one-sentence.md`。
-> **不要打开 arena.ai**（登录墙）。映射见仓库根目录 `01a0a821.md`：clone GitHub `arena/01a0a821-git-pull-arena`。禁止向用户索要长提示词。
+> **不要打开 arena.ai**（登录墙）。映射见仓库根目录 `01a0a821.md`：clone GitHub `shaohuawen03-cyber/new` 分支 `arena/01a0ae7a-new`（技能总部，v2.9.2 起）。
+禁止向用户索要长提示词。账号策略：贴给用户的本机块里已带 `auth.ps1 -Account <仓库主>`。
 
 ---
 
@@ -20,7 +21,7 @@
 
 ## 助手自动做的
 
-1. 从 `arena/01a0a821-git-pull-arena` 把 `skills/git-sync` 装进**本仓库当前工作分支**。
+1. 从 `shaohuawen03-cyber/new` 分支 `arena/01a0ae7a-new` 把 `skills/git-sync` 装进**本仓库当前工作分支**（安装器会自己挑最新候选）。
 2. `agent-sync.sh` 提交推送。
 3. 回复一段**已经填好**的本机 PowerShell（新文件夹；禁止覆盖 `git-pull-arena` / `git-pull-arena-v268` / `git-pull-arena-s2`）。
 4. 若有具体任务 / 「自循环」：立刻做任务、写 `success_criteria.json`、`agent-handsfree.sh --timeout auto` 直到 accept。值守一回传就停，不空等 600 秒。

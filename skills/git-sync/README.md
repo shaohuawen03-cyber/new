@@ -1,4 +1,6 @@
-> 当前版本 **v2.9.1**（修多账号钉账号：helper 必须是被调用的函数 `!f() { ...; }; f`（git 会追加 `"$@"`，`if…fi` 会 syntax error）；空值复位改为三层兜底 + 读回验证；钉住后不加后备 helper（失败关闭）。见「二·六」与 `CASE_STUDY.md` §9。）
+> 当前版本 **v2.9.2**（技能总部迁至 `shaohuawen03-cyber/new` 分支 `arena/01a0ae7a-new`；安装器多候选探测取最新、旧仓库降为后备；**账号策略**：谁仓库的会话就用谁账号，`agent-handoff.sh` 自动在粘贴块里带上 `auth.ps1 -Account <仓库主>`。见「二·六」。）
+>
+> v2.9.1（修多账号钉账号：helper 必须是被调用的函数 `!f() { ...; }; f`（git 会追加 `"$@"`，`if…fi` 会 syntax error）；空值复位改为三层兜底 + 读回验证；钉住后不加后备 helper（失败关闭）。见「二·六」与 `CASE_STUDY.md` §9。）
 > 当前版本 **v2.9.0**（多账号）：`auth.ps1` 新增 `-Accounts` / `-Account <login>` / `-Unpin`——一台机器多个 GitHub 登录时，把**单个克隆**钉到有权推它的账号，其他克隆不受影响；403 `Permission to ... denied to OTHER-USER` 归位为「权限问题」；`doctor` 与 `local_check.ps1` 会报当前账号/pin。见「二·六」。
 > 当前版本 **v2.8.1**（放开沙箱工具链限制：`pip`/`.venv`/python-docx 随便用，只禁「冒充本机」；安装器不再降级 + 取最新分支；值守每行带时间戳；轮询自适应提速；`.gitattributes` 统一 LF 修 CRLF 假失败）。成功案例 `deliverable/CASE_STUDY_v2.8.0.md`。`main` 上是 **v2.6.7**。
 
@@ -192,6 +194,17 @@ python 版本、哪个环境的 torch 能用 CUDA——计算类工作开工前�
 | 可视化 | `doctor.ps1` 打 `auth account` 行；`code/local_check.ps1` 每轮把 pin 写进日志；`push.ps1` 遇 403 直接给出这两条命令 |
 
 
+### 账号策略（v2.9.2）
+
+| 会话 / 仓库 | 钉住的账号 |
+|---|---|
+| `shaohuawen03-cyber` 的会话与仓库 | `shaohuawen03-cyber` |
+| `mqgg5630-cyber` 的会话与仓库 | `mqgg5630-cyber` |
+
+`agent-handoff.sh` 生成的粘贴块里已经带好 `.\auth.ps1 -Account <仓库主>`（owner 从 remote URL 解析）。
+**机器默认账号不动**，所以同机其他克隆照旧；`gh auth switch -u X` 才是改机器默认（会连累所有克隆，不要拿它当切换器）。
+
+
 ## 三、为什么 `.ps1` 里绝对不能写中文
 
 Windows PowerShell 5.1 读**没有 BOM** 的 `.ps1` 时按 **ANSI/GBK** 解码；UTF-8 的中文注释会变成乱码，
@@ -259,8 +272,8 @@ gate（`code/check_all.sh`）提交前自动扫描全部 `.ps1`，非 ASCII 直�
 **助手侧 / 手动（一条命令）**：
 
 ```bash
-git clone --quiet --depth 1 -b arena/01a0a821-git-pull-arena \
-     https://github.com/mqgg5630-cyber/git-pull-arena.git /tmp/git-sync-src \
+git clone --quiet --depth 1 -b arena/01a0ae7a-new \
+     https://github.com/shaohuawen03-cyber/new.git /tmp/git-sync-src \
   && bash /tmp/git-sync-src/skills/git-sync/scripts/agent-install.sh --branch <工作分支>
 ```
 
