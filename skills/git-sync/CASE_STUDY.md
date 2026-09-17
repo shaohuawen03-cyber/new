@@ -133,3 +133,36 @@ gh auth switch -u mqgg5630-cyber       # ★ 默认账号切回 mqgg，否则 gi
 **附带**：`-Auto` 的零窗口启动器在杀软下报 `%1 不是有效的 Win32 应用程序`，自动回退 flash 模式
 （每次登录闪一次，功能不变）；想零闪就给 `C:\ProgramData\git-sync\` 加排除，或管理员跑
 `.\watch.ps1 -Register -Headless`（需 gh 令牌可用）。
+
+## 10. v2.9.0 钉账号的两连坑（2026-09-17 下午，会话 `01a0ae7a` 实测）
+
+**症状**：`E:\0github\git-sync\new-01a0ae7a` 执行 `auth.ps1 -Account shaohuawen03-cyber` →
+`[FAIL] could not write the local pin:`（详情为空）；随后 `-Verify` 里 push 直接报
+``if T=$(...); then ...; else exit 1; fi get: -c: line 1: syntax error near unexpected token `get'``。
+
+**坑 1：git 会往 helper 命令后面追加 `"$@"`**。git 执行 `!` 开头的 helper 等价于
+`sh -c '<value> "$@"' '<value>' get`，所以值必须是**被调用的函数**：
+`!f() { ...; }; f` → 变成 `f get` ✅；而 `!if ...; then ...; fi` → 变成 `if ...; fi get` → 语法错误 ❌。
+写成 `test -n $(...) && ...` 还有第二个坑：POSIX `test` 收到单个参数 `-n` 时**恒为真**，
+且 `GH_TOKEN` 为空时 gh 会**回落 active 账号**（= 静默用错身份）。最终形态（无引号、可经 cmd）：
+
+```
+!f() { T=$('C:/Program Files/GitHub CLI/gh.exe' auth token -u NAME) || exit 1; GH_TOKEN=$T 'C:/Program Files/GitHub CLI/gh.exe' auth git-credential $@; }; f
+```
+
+**坑 2：空值复位必须写在本地列表最前面，而且写进去不可靠**。实测（git 2.39，global 层有一个
+能正常应答的 generic helper）：
+* 只写本地 `credential.https://github.com.helper` → **机器级 generic 抢先应答**（所以用户手打那条无效）；
+* 本地先写一条**空值** `credential.helper` 再 pin → pin 生效 ✅；
+* 没有空值复位时的对照实验 → 又回到机器级账号 ❌。
+
+而"写一条空值"在 Windows 上会失败：空参数经 cmd/MSYS 可能被吞掉，`git config key ""` 退化成读操作并 exit 1
+（这正是 `could not write the local pin:` 的来源）。v2.9.1 起三层兜底并逐层读回验证：
+argv（`--replace-all credential.helper ""`）→ `git config --stdin`（git ≥ 2.45，空值走 stdin，不经过 argv）→
+直接编辑 `.git/config`（在 `[credential]` 段首插入 `helper = `）。
+
+**坑 3（设计决定）：钉住后不加后备 helper**。若把机器级 helper 追加在后面当后备，账号令牌失效时
+git 会拿机器默认账号（错误身份）继续推——"失败关闭"就没意义了。宁可明确失败，让人看见。
+
+**怎么快速自检**：`auth.ps1 -Account <login>` 成功时会打印实际生效的那一层（argv/stdin/file）与
+`probe: the credential now comes from ...`；`-Accounts` 会显示 PINNED 与"谁能推本仓库"。

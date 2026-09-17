@@ -1,3 +1,4 @@
+> 当前版本 **v2.9.1**（修多账号钉账号：helper 必须是被调用的函数 `!f() { ...; }; f`（git 会追加 `"$@"`，`if…fi` 会 syntax error）；空值复位改为三层兜底 + 读回验证；钉住后不加后备 helper（失败关闭）。见「二·六」与 `CASE_STUDY.md` §9。）
 > 当前版本 **v2.9.0**（多账号）：`auth.ps1` 新增 `-Accounts` / `-Account <login>` / `-Unpin`——一台机器多个 GitHub 登录时，把**单个克隆**钉到有权推它的账号，其他克隆不受影响；403 `Permission to ... denied to OTHER-USER` 归位为「权限问题」；`doctor` 与 `local_check.ps1` 会报当前账号/pin。见「二·六」。
 > 当前版本 **v2.8.1**（放开沙箱工具链限制：`pip`/`.venv`/python-docx 随便用，只禁「冒充本机」；安装器不再降级 + 取最新分支；值守每行带时间戳；轮询自适应提速；`.gitattributes` 统一 LF 修 CRLF 假失败）。成功案例 `deliverable/CASE_STUDY_v2.8.0.md`。`main` 上是 **v2.6.7**。
 
@@ -182,8 +183,11 @@ python 版本、哪个环境的 torch 能用 CUDA——计算类工作开工前�
 | 机制 | 说明 |
 |---|---|
 | 作用域 | 只写本克隆 `git config --local`；其他克隆照旧用机器默认（`gh auth switch -u X` 才是改全局默认） |
+| helper 写法 | git 会执行 `!f() { ...; }; f "$@"`——必须是**被调用的函数**；`if ...; fi` → `fi get` = syntax error，等于没设。值里不含双引号，路径用正斜杠 |
+| 空值怎么写成 | Windows 上往 cmd 传空参数不可靠：argv → `--stdin`（git≥2.45）→ 直接改 `.git/config` 三层兜底，**每层读回验证**，并报出实际生效的那层 |
 | 先清空再钉 | `credential.helper` 是累加列表，机器级 helper（GCM / 全局 gh = active 账号）会先应答；`-Account` 先写一条**空值**清空列表再钉（git 2.39 / 2.54 实测） |
 | 后备 | 原机器级 helper 会被追加为后备；值中含双引号时跳过（避免 cmd 引号二次转义写出坏配置） |
+| 不加后备 | 钉住后**不再追加**机器级 helper 作后备：账号令牌失效就明确失败，绝不静默用别的账号推送 |
 | 失败关闭 | pin 命令 `!if T=$(gh auth token -u NAME); then GH_TOKEN=$T gh auth git-credential; else exit 1; fi`——账号登出/令牌失效直接非零退出，绝不悄悄用 active 账号 |
 | 可视化 | `doctor.ps1` 打 `auth account` 行；`code/local_check.ps1` 每轮把 pin 写进日志；`push.ps1` 遇 403 直接给出这两条命令 |
 

@@ -3,6 +3,7 @@ name: git-local-arena-sync
 description: "TRIGGER: user says 安装https://arena.ai/agent/01a0a821 的skills 与本地打通 (or 安装 arena/01a0a821-git-pull-arena skills). Do NOT open arena.ai (login wall). Immediately: git clone --quiet --depth 1 -b arena/01a0a821-git-pull-arena https://github.com/mqgg5630-cyber/git-pull-arena.git /tmp/git-sync-src && bash /tmp/git-sync-src/skills/git-sync/scripts/agent-install.sh && bash skills/git-sync/scripts/agent-sync.sh. Root must have watch.ps1. First user-visible reply MUST be filled Windows PowerShell: git clone -b BRANCH URL NEW_FOLDER then .\bootstrap.ps1 -Auto. Forbidden: faking the local side (local/inbox, hand-made stand-in skill). Sandbox may pip install / use .venv freely (v2.8.0). Then do the user task (docx/pptx) and agent-handsfree.sh --timeout auto. Also Windows PowerShell <-> Arena git-sync (sync/push/watch/doctor/auth silent push, zero-window watcher)."
 ---
 
+> 当前版本 **v2.9.1**（修 v2.9.0 的多账号钉账号：① helper 必须写成**被调用的函数** `!f() { ...; }; f`——git 会在命令后追加 `"$@"`，`if ...; fi` 形式会直接 `syntax error near unexpected token 'get'`；② 「空值复位」这一条在 Windows 上可能被 cmd/MSYS 吞掉，改成**三层兜底 + 读回验证**（argv → `--stdin` → 直接写 `.git/config`）；③ 钉住后**不再追加后备 helper**：账号令牌失效就明确失败，绝不回落机器默认账号。实测记录见 `CASE_STUDY.md` §9。）
 > 当前版本 **v2.9.0**（**多账号**：`-Accounts` 列出本机所有 gh 登录并逐个实测「能不能推本仓库」，`-Account <login>` 把**当前克隆**钉到某个账号（只写本克隆的本地 git config，其他克隆照旧），`-Unpin` 还原；403 从此被识别为**权限问题**而不是「凭据坏了」；`doctor` / `local_check.ps1` 都会报出当前账号与 pin。详见第 10 节。）
 > 当前版本 **v2.8.1**（沙箱可自由装库；安装器取最新分支且拒绝降级；值守日志带时间戳；轮询自适应；LF 统一）。一句话触发装技能+自循环；`--timeout auto` 值守一回传就停。`main` 上仍是 v2.6.7。
 > 用户侧升级三步：`.\sync.ps1` → `.\watch.ps1 -Unregister ; .\watch.ps1 -Register` → `.\watch.ps1 -Status`（应看到 `hands-free: master=True`）。切回本会话：`.\watch.ps1 -Focus`。
@@ -297,7 +298,7 @@ bash skills/git-sync/scripts/agent-handsfree.sh \
 用户侧升级：`.\sync.ps1` → `.\watch.ps1 -Unregister ; .\watch.ps1 -Register` → `.\watch.ps1 -Status`
 （应显示 `hands-free: master=True auto_pull=True auto_push=True`）。
 
-## 10. 多账号共存与切换（v2.9.0）
+## 10. 多账号共存与切换（v2.9.0 / v2.9.1）
 
 一台机器常有**多个 GitHub 登录**（gh 可以存很多个，只有一个是 active）。克隆用的是 active 那个——仓库属于另一个号时，凭据完全有效，push 仍然 403
 `Permission to OWNER/REPO.git denied to OTHER-USER`。心跳/日志里看到 403 时，先把「凭据问题」和「权限问题」分开：
@@ -309,8 +310,13 @@ bash skills/git-sync/scripts/agent-handsfree.sh \
 .\auth.ps1 -Verify                    # 钉完立刻证明：push --dry-run PASSED
 ```
 
+* **helper 必须是"被调用的函数"**：git 执行 `!` 开头的 helper 时会在命令末尾**追加 `"$@"`**（`f() { ...; }; f get`）。写成 `if ...; then ...; fi` 会变成 `fi get` → `syntax error near unexpected token 'get'`，helper **一次都不会执行**（v2.9.0 真实事故，v2.9.1 修复）；值里不要出现双引号（要经过 cmd），路径用正斜杠；
 * **只动本文件夹**：pin 写在 `git config --local`，其他克隆（如 `git-pull-arena`）继续用机器默认账号，互不影响；
+* **空值复位是硬前提**：机器级 generic helper（GCM / 全局 gh = active 账号）**排在前面先应答**，只在本地写 host-specific helper（`credential.https://github.com.helper`）**完全无效**（实测：谁先应答由列表顺序决定，而 system→global→local）。必须在本地列表**最前面**放一条**空值** `credential.helper`，它会把此前收集到的 helper 全部丢弃，之后的 pin 才轮得到；
+* **空值写入要三层兜底**：Windows 上把空参数送进 cmd/MSYS 不可靠（会被吞掉，`git config key ""` 退化成"读"并 exit 1——v2.9.0 现场就是这个）。`-Account` 依次尝试 argv → `git config --stdin`（git ≥ 2.45）→ 直接编辑 `.git/config`，**每次都读回验证**，并打印实际生效的那一层；
 * **为什么先清空**：`credential.helper` 是**累加**的，机器级 helper（GCM / 全局 gh）会排在前面先应答，只 `--add` 一条新 helper 等于没设。`-Account` 会先写一条空值**清空列表**再钉（git 2.39 / 2.54 实测），并把原机器级 helper 作为**后备**（值里含双引号时跳过，避免引号二次转义写成坏配置）；
+* **钉住后不加后备 helper**：账号令牌失效时 helper 直接非零退出（明确报错），不会回落到机器默认账号——否则"失败关闭"就形同虚设，还可能以错误身份推送；
+* **钉住后不加后备 helper**：账号令牌失效时 helper 直接非零退出（明确报错），不会回落到机器默认账号——否则"失败关闭"形同虚设，还可能以错误身份推送；
 * **失败关闭**：pin 的命令形如
   `!if T=$(... 'gh.exe' auth token -u NAME); then GH_TOKEN=$T ... git-credential; else exit 1; fi`——
   账号被登出/令牌失效时**退出非零**，绝不悄悄改用 active 账号（空 `GH_TOKEN` 会让 gh 回落，那样会以错误身份推送）；
