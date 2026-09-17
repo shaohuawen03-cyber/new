@@ -1,0 +1,7 @@
+# local-only: never commit these
+.venv/
+__pycache__/
+fonts/
+_export/
+.DS_Store
+*.log
