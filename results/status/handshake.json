@@ -1,9 +1,9 @@
 {
-    "round":  5,
-    "arena_state":  "awaiting_check",
-    "local_state":  "passed",
-    "arena_updated":  "2026-09-18 01:05:52",
-    "local_updated":  "2026-09-18 09:07:39",
-    "host":  "LAPTOP-R77M5D6M",
-    "note":  "diag: fill_reason运行无输出,推日志诊断"
+  "round": 5,
+  "arena_state": "accepted",
+  "local_state": "passed",
+  "arena_updated": "2026-09-18 01:07:49",
+  "local_updated": "2026-09-18 09:07:39",
+  "host": "LAPTOP-R77M5D6M",
+  "note": "hands-free: criteria met"
 }
