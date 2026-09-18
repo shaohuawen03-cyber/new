@@ -1,9 +1,9 @@
 {
-  "round": 2,
-  "arena_state": "accepted",
-  "local_state": "passed",
-  "arena_updated": "2026-09-17 12:56:04",
-  "local_updated": "2026-09-17 20:55:55",
-  "host": "LAPTOP-R77M5D6M",
-  "note": "hands-free: criteria met"
+  "round": 3,
+  "arena_state": "awaiting_check",
+  "local_state": "pending",
+  "arena_updated": "2026-09-18 00:21:35",
+  "local_updated": null,
+  "host": "",
+  "note": "verify: 合订本v2.1 封面已改,JCR待jcr.png到分支后嵌入"
 }
