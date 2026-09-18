@@ -1,9 +1,9 @@
 {
-  "round": 4,
-  "arena_state": "awaiting_check",
-  "local_state": "pending",
-  "arena_updated": "2026-09-18 00:50:15",
-  "local_updated": null,
-  "host": "",
-  "note": "verify: 合订本v3 JCR截图已嵌入,14页完整"
+    "round":  4,
+    "arena_state":  "awaiting_check",
+    "local_state":  "passed",
+    "arena_updated":  "2026-09-18 00:50:15",
+    "local_updated":  "2026-09-18 08:52:37",
+    "host":  "LAPTOP-R77M5D6M",
+    "note":  "verify: 合订本v3 JCR截图已嵌入,14页完整"
 }
