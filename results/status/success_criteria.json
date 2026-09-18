@@ -1,21 +1,25 @@
 {
-  "description": "合订本v2: 去第四部分+JCR待嵌入页, 删重建DOCX, 加原表填写脚本",
+  "description": "合订本v2.1: 封面去md措辞+JCR兼容jcr.png+子集字体入库",
   "require_files": [
     "deliverable/国家奖学金支撑材料合订本_文绍华.pdf",
     "deliverable/申请理由200字.txt",
     "code/fill_reason.ps1",
-    "code/build_deliverable.py"
+    "code/build_deliverable.py",
+    "code/fonts/SHS-R-sub.ttf",
+    "code/fonts/SHS-B-sub.ttf"
   ],
   "forbid_files": [
     "deliverable/附件2_申请审批表_已填申请理由.docx"
   ],
   "require_contains": {
     "deliverable/申请理由200字.txt": "Food Chemistry",
-    "code/fill_reason.ps1": "KWPS.Application"
+    "code/fill_reason.ps1": "KWPS.Application",
+    "code/build_deliverable.py": "find_jcr_image"
   },
   "min_bytes": {
     "deliverable/国家奖学金支撑材料合订本_文绍华.pdf": 4000000,
     "deliverable/申请理由200字.txt": 500,
-    "code/fill_reason.ps1": 3000
+    "code/fill_reason.ps1": 3000,
+    "code/fonts/SHS-R-sub.ttf": 50000
   }
 }

@@ -1,7 +1,8 @@
 # local-only: never commit these
 .venv/
 __pycache__/
-fonts/
+/fonts/
 _export/
 .DS_Store
 *.log
+# NOTE: code/fonts/ (small subset TTFs) IS committed on purpose.

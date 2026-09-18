@@ -25,7 +25,16 @@ FONTS_DIR = os.path.join(REPO, "code", "fonts")
 
 PAPER_PDF = os.path.join(SRC_DIR, "Combined computational and spectroscopic analyses of the interactions between ginger compounds and bovine type I collagen.pdf")
 WOS_DOCX = os.path.join(SRC_DIR, "文字文稿1.docx")
-JCR_IMG = os.path.join(SRC_DIR, "JCR分区查询截图.png")
+JCR_CANDIDATES = ["JCR分区查询截图.png", "jcr.png", "JCR.png", "jcr截图.png"]
+
+def find_jcr_image():
+    for name in JCR_CANDIDATES:
+        p = os.path.join(SRC_DIR, name)
+        if os.path.isfile(p):
+            return p
+    return None
+
+JCR_IMG = None  # resolved in main() via find_jcr_image()
 PDF_OUT = os.path.join(OUT_DIR, "国家奖学金支撑材料合订本_文绍华.pdf")
 TXT_OUT = os.path.join(OUT_DIR, "申请理由200字.txt")
 
@@ -130,8 +139,7 @@ def build_front(toc_entries, path):
     story.append(Paragraph("申请人：文绍华（鲁东大学 生命科学学院 生物学2024级 学号2024110316）", S["center"]))
     story.append(Paragraph("代表性成果：Food Chemistry 521 (2026) 149910（共同第一作者）", S["center"]))
     story.append(Spacer(1, 20))
-    story.append(Paragraph("本合订本按《要求.md》编排：目录 — 成果（论文全文）— WOS收录和分区 — JCR分区查询。申请理由填入原表（附件2），不收入本合订本。", S["body"]))
-    story.append(Paragraph("其中“JCR分区查询”截图已由申请人提供，待截图文件经上传收入后即嵌入替换本页说明；其余均为原件或原件截图。", S["body"]))
+    story.append(Paragraph("本合订本收录：目录 — 成果（论文全文）— WOS收录和分区证明 — JCR分区查询。", S["body"]))
     story.append(Spacer(1, 10))
     story.append(Paragraph("生成日期：2026年9月17日", S["center"]))
     from reportlab.platypus import PageBreak
@@ -172,14 +180,14 @@ def build_back_section_wos(wos_img, path):
     doc.build(story, onFirstPage=lambda c, d: _footer(c, d, 0), onLaterPages=lambda c, d: _footer(c, d, 0))
 
 
-def build_back_section_jcr(path):
+def build_back_section_jcr(path, jcr_img):
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.styles import ParagraphStyle
     from reportlab.lib import colors
     S = _styles()
     story = [Paragraph("第三部分　JCR分区查询", S["h1"])]
-    if os.path.isfile(JCR_IMG):
+    if jcr_img and os.path.isfile(jcr_img):
         story.append(Paragraph("来源：申请人提供的JCR期刊主页截图（原样嵌入下图）", S["small"]))
         rows = [[Paragraph("<b>%s</b>" % k, S["cellB"]), Paragraph(v, S["cell"])] for k, v in JCR_INFO]
         t = Table(rows, colWidths=[150, 332])
@@ -189,20 +197,20 @@ def build_back_section_jcr(path):
         h2tight = ParagraphStyle("h2tight2", parent=S["h2"], spaceBefore=2, spaceAfter=2)
         story += [t, Spacer(1, 2), Paragraph("JCR期刊主页截图（原件）：", h2tight)]
         from PIL import Image as PILImage
-        iw, ih = PILImage.open(JCR_IMG).size
+        iw, ih = PILImage.open(jcr_img).size
         w, h = 460, 460 * ih / iw
         if h > 380:
             w, h = w * 380 / h, 380
-        story.append(Image(JCR_IMG, width=w, height=h))
+        story.append(Image(jcr_img, width=w, height=h))
         story.append(Spacer(1, 2))
         story.append(Paragraph("声明：上图为申请人提供的JCR截图；其中彩色标签为浏览器学术插件标注。本截图为期刊主页头部，未含JCR分区表（Quartile／Rank）部分，此处不编造分区结论；如需完整分区排名，可再补一张含排名的截图。", S["small"]))
         title = "JCR分区查询"
     else:
-        story += [Paragraph("状态：截图文件待收入（申请人已在聊天中提供截图预览，待截图文件经上传收入后即嵌入本页）。", S["body"]),
-                  Paragraph("本页暂为说明页，未编造任何分区结论。请申请人把JCR截图保存为文件后执行上传，下一版合订本将原样嵌入截图并附期刊信息表。", S["body"]),
+        story += [Paragraph("状态：截图文件待收入（申请人已提供截图预览，待截图文件经上传收入后即嵌入本页）。", S["body"]),
+                  Paragraph("本页暂为说明页，未编造任何分区结论。请申请人把JCR截图保存为 jcr.png 放入 sources 文件夹后执行推送，下一版合订本将原样嵌入截图并附期刊信息表。", S["body"]),
                   Spacer(1, 8),
-                  Paragraph("上传方法（在本机克隆里执行）：", S["h2"]),
-                  Paragraph("把截图保存为 JCR分区查询截图.png 后：.\\upload.ps1 -Src <截图所在文件夹> -Message \"upload: JCR截图\"", S["body"])]
+                  Paragraph("推送方法（在本机克隆里执行）：", S["h2"]),
+                  Paragraph("文件已在 sources 文件夹内时，直接执行：.\\push.ps1 \"upload: jcr screenshot\"", S["body"])]
         title = "JCR分区查询（截图待嵌入）"
     doc = SimpleDocTemplate(path, pagesize=A4, leftMargin=57, rightMargin=57, topMargin=57, bottomMargin=57,
                             title=title, author="文绍华")
@@ -217,9 +225,10 @@ def main():
     _register_fonts()
     wos_img = extract_wos_image()
     tmp = tempfile.mkdtemp(prefix="hebian_")
+    jcr_img = find_jcr_image()
     wos_pdf = os.path.join(tmp, "wos.pdf"); jcr_pdf = os.path.join(tmp, "jcr.pdf")
     build_back_section_wos(wos_img, wos_pdf)
-    build_back_section_jcr(jcr_pdf)
+    build_back_section_jcr(jcr_pdf, jcr_img)
     n_paper = len(PdfReader(PAPER_PDF).pages)
     n_wos = len(PdfReader(wos_pdf).pages); n_jcr = len(PdfReader(jcr_pdf).pages)
     # front is cover + toc = 2 pages; renumber back sections with offset
@@ -227,7 +236,7 @@ def main():
     p_paper = FRONT + 1
     p_wos = p_paper + n_paper
     p_jcr = p_wos + n_wos
-    jcr_label = "三、JCR分区查询（含截图）" if os.path.isfile(JCR_IMG) else "三、JCR分区查询（截图待嵌入）"
+    jcr_label = "三、JCR分区查询（含截图）" if jcr_img else "三、JCR分区查询（截图待嵌入）"
     def pg_range(start, n):
         return "第 %d–%d 页" % (start, start + n - 1) if n > 1 else "第 %d 页" % start
     toc = [("一、成果（论文全文，原样并入）", pg_range(p_paper, n_paper)),
@@ -267,7 +276,7 @@ def main():
               + "；全文字符数：" + str(len(REASON))
               + "\n说明：本文件第3行为填表数据源，请在本机运行 code\\fill_reason.ps1 自动填入原表；也可手动复制正文到附件2“申请理由”栏。\n")
     total = FRONT + n_paper + n_wos + n_jcr
-    print("paper=%d wos=%d jcr=%d total=%d jcr_img=%s" % (n_paper, n_wos, n_jcr, total, os.path.isfile(JCR_IMG)))
+    print("paper=%d wos=%d jcr=%d total=%d jcr_img=%s" % (n_paper, n_wos, n_jcr, total, jcr_img))
     for p in (PDF_OUT, TXT_OUT):
         print("OK", os.path.getsize(p), p)
     os.remove(wos_img)
