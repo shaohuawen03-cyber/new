@@ -1,8 +1,9 @@
 {
-  "description": "合订本v2.1: 封面去md措辞+JCR兼容jcr.png+子集字体入库",
+  "description": "合订本v3: JCR原图已嵌入+信息表, 封面中性措辞, 无第四部分",
   "require_files": [
     "deliverable/国家奖学金支撑材料合订本_文绍华.pdf",
     "deliverable/申请理由200字.txt",
+    "sources/jcr.png",
     "code/fill_reason.ps1",
     "code/build_deliverable.py",
     "code/fonts/SHS-R-sub.ttf",
@@ -19,6 +20,7 @@
   "min_bytes": {
     "deliverable/国家奖学金支撑材料合订本_文绍华.pdf": 4000000,
     "deliverable/申请理由200字.txt": 500,
+    "sources/jcr.png": 20000,
     "code/fill_reason.ps1": 3000,
     "code/fonts/SHS-R-sub.ttf": 50000
   }

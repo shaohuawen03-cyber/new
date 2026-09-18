@@ -202,7 +202,7 @@ def build_back_section_jcr(path, jcr_img):
         if h > 380:
             w, h = w * 380 / h, 380
         story.append(Image(jcr_img, width=w, height=h))
-        story.append(Spacer(1, 2))
+        story.append(Spacer(1, 10))
         story.append(Paragraph("声明：上图为申请人提供的JCR截图；其中彩色标签为浏览器学术插件标注。本截图为期刊主页头部，未含JCR分区表（Quartile／Rank）部分，此处不编造分区结论；如需完整分区排名，可再补一张含排名的截图。", S["small"]))
         title = "JCR分区查询"
     else:
