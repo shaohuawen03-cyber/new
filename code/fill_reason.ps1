@@ -29,6 +29,11 @@ if (-not (Test-Path -LiteralPath (Join-Path $repo '.git'))) {
     exit 1
 }
 
+# also mirror ALL output to a log file, so nothing is lost if the console swallows it
+$logFile = Join-Path $repo 'deliverable\fill_reason.last.log'
+Start-Transcript -LiteralPath $logFile -Force | Out-Null
+Write-Host ('== log: ' + $logFile)
+
 # --- 1. read the reason text (line index 2 of the *200*.txt) ---
 $txt = Get-ChildItem -LiteralPath (Join-Path $repo 'deliverable') -Filter '*.txt' -ErrorAction SilentlyContinue |
     Where-Object { $_.Name -match '200' } | Select-Object -First 1
@@ -134,3 +139,18 @@ try {
 Write-Host ''
 Write-Host 'next: open the _filled.doc in Word/WPS and check the reason cell, then:'
 Write-Host '  .\push.ps1 "upload: filled form"'
+
+# --- end-game: did we actually get a file? (catch silent no-output runs) ---
+if (Test-Path -LiteralPath $dest) {
+    Write-Host ''
+    Write-Host 'next: open the _filled.doc in Word/WPS and check the reason cell, then:'
+    Write-Host '  .\push.ps1 "upload: filled form"'
+} else {
+    Write-Host ''
+    Write-Host '[ERROR] finished but NO _filled.doc was written - look for a red [ERROR] line above' -ForegroundColor Red
+    Write-Host '--- which Office COM answered on this machine ---'
+    foreach ($p in @('Word.Application','KWPS.Application','WPS.Application')) {
+        try { $n = New-Object -ComObject $p -ErrorAction Stop; Write-Host "  [ok] $p"; try { $n.Quit() } catch {} }
+        catch { Write-Host "  [no] $p : $($_.Exception.Message)" }
+    }
+}
