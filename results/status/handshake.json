@@ -1,9 +1,9 @@
 {
-    "round":  6,
-    "arena_state":  "awaiting_check",
-    "local_state":  "failed",
-    "arena_updated":  "2026-09-19 08:52:18",
-    "local_updated":  "2026-09-19 16:58:18",
-    "host":  "LAPTOP-R77M5D6M",
-    "note":  "waiting: 等你推 sources/学生发表论文.xlsx 与 sources/附件3：鲁东大学2026年研究生学业奖学金申请审批表.docx"
+  "round": 7,
+  "arena_state": "awaiting_check",
+  "local_state": "pending",
+  "arena_updated": "2026-09-19 09:06:03",
+  "local_updated": null,
+  "host": "",
+  "note": "verify: 双版PDF完备+学业填表清单送达"
 }
