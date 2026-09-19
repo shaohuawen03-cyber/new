@@ -18,13 +18,21 @@ TMP_DOCX = '/tmp/attach3_spire.docx'
 
 VALUES = {
     '姓名': '文绍华',
+    '性别': '男',
+    '出生年月': '2002.03.04',
     '政治面貌': '共青团员',
+    '民族': '汉族',
+    '入学时间': '2024.08.25',
     '所在学院': '生命科学学院',
     '专业': '生物学',
     '攻读学位': '硕士',
+    '学制': '三年',
     '学号': '2024110316',
+    '身份证号': '51370120020302041X',
 }
 TICK_FROM, TICK_TO = '□硕士', '☑硕士'
+LEVEL_FROM, LEVEL_TO = '硕士一等□', '硕士一等☑'   # 档次如有异议自己改勾
+TITLE_YEAR_FROM, TITLE_YEAR_TO = '大学202  年', '大学2026年'
 REASON_LABEL = '个人申请理由'
 HINT = '包括'
 
@@ -82,6 +90,20 @@ def main():
                 nxt.paragraphs[0].add_run(VALUES[txt])
                 filled.append(txt)
 
+    # 2.5) title year blank: 大学202  年 -> 大学2026年 (run-fragment safe: rebuild para runs)
+    for p in d.paragraphs:
+        if TITLE_YEAR_FROM in p.text:
+            for r in p.runs:
+                if TITLE_YEAR_FROM in r.text:
+                    r.text = r.text.replace(TITLE_YEAR_FROM, TITLE_YEAR_TO)
+            if TITLE_YEAR_FROM in p.text:
+                merged = p.text.replace(TITLE_YEAR_FROM, TITLE_YEAR_TO)
+                if p.runs:
+                    p.runs[0].text = merged
+                    for r in p.runs[1:]:
+                        r.text = ''
+            filled.append('标题年份2026')
+
     # 3) tick checkbox (口/硕 may sit in separate runs; fall back to paragraph rebuild)
     for c in cells:
         if TICK_FROM in c.text:
@@ -99,6 +121,24 @@ def main():
                     done = True
             if done:
                 filled.append('硕士勾选')
+
+    # 3.5) 申请级别 tick 硕士一等 (box sits AFTER the label text)
+    for c in cells:
+        if LEVEL_FROM in c.text:
+            done = False
+            for p in c.paragraphs:
+                for r in p.runs:
+                    if LEVEL_FROM in r.text:
+                        r.text = r.text.replace(LEVEL_FROM, LEVEL_TO)
+                        done = True
+                if not done and LEVEL_FROM in p.text and p.runs:
+                    merged = p.text.replace(LEVEL_FROM, LEVEL_TO)
+                    p.runs[0].text = merged
+                    for r in p.runs[1:]:
+                        r.text = ''
+                    done = True
+            if done:
+                filled.append('申请级别硕士一等')
 
     # 4) reason into the cell that holds the hint (right after the hint para)
     for i, c in enumerate(cells):
@@ -128,7 +168,7 @@ def main():
     d.save(OUT)
     print('filled:', len(filled), '->', filled)
     print('saved:', OUT)
-    if len(filled) < 7:
+    if len(filled) < 14:
         raise SystemExit('too few fields filled, aborting')
 
 
