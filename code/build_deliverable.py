@@ -39,6 +39,7 @@ JCR_IMG = None  # resolved in main() via find_jcr_image()
 # Two deliverable variants share the same body; only the cover / TOC / metadata differ.
 PDF_OUT_NAT = os.path.join(OUT_DIR, "国家奖学金支撑材料合订本_文绍华.pdf")
 PDF_OUT_SCH = os.path.join(OUT_DIR, "学业奖学金支撑材料合订本_文绍华.pdf")
+PDF_OUT_NEU = os.path.join(OUT_DIR, "支撑材料合订本_文绍华.pdf")
 TXT_OUT = os.path.join(OUT_DIR, "申请理由200字.txt")
 
 # Scholarship label shown on the cover + PDF metadata.
@@ -54,6 +55,12 @@ VARIANTS = {
         "pdf_out": PDF_OUT_SCH,
         "title_line": "2025—2026学年研究生学业奖学金",
         "subject": "学业奖学金支撑材料合订本",
+    },
+    "neutral": {
+        "kind": "通用",
+        "pdf_out": PDF_OUT_NEU,
+        "title_line": None,  # cover carries no scholarship wording at all
+        "subject": "支撑材料合订本",
     },
 }
 
@@ -168,11 +175,12 @@ def build_front(toc_entries, path, variant):
         shs_b_glyphs = set(TTFont(os.path.join(FONTS_DIR, "SHS-B-sub.ttf")).getBestCmap().keys())
     except Exception:
         pass
-    title_style = S["title"] if all(ord(c) in shs_b_glyphs or ord(c) < 128 for c in variant["title_line"]) else S["title_fallback"]
+    title_style = S["title"] if (variant["title_line"] is None or all(ord(c) in shs_b_glyphs or ord(c) < 128 for c in variant["title_line"])) else S["title_fallback"]
     story = []
     story.append(Spacer(1, 90))
-    story.append(Paragraph(variant["title_line"], title_style))
-    story.append(Paragraph("申请支撑材料合订本", S["title"]))
+    if variant["title_line"]:
+        story.append(Paragraph(variant["title_line"], title_style))
+    story.append(Paragraph("申请支撑材料合订本" if variant["title_line"] else "支撑材料合订本", S["title"]))
     story.append(Spacer(1, 30))
     story.append(Paragraph("申请人：文绍华（鲁东大学 生命科学学院 生物学2024级 学号2024110316）", S["center"]))
     story.append(Paragraph("代表性成果：Food Chemistry 521 (2026) 149910（共同第一作者）", S["center"]))
@@ -308,7 +316,8 @@ def main():
         wt = PdfWriter()
         for src in (front_pdf, PAPER_PDF, wos_n, jcr_n):
             for pg in PdfReader(src).pages: wt.add_page(pg)
-        wt.add_metadata({"/Title": variant["title_line"] + "申请支撑材料合订本-文绍华",
+        meta_title = ((variant["title_line"] or "") + "申请支撑材料合订本" if variant["title_line"] else "支撑材料合订本") + "-文绍华"
+        wt.add_metadata({"/Title": meta_title,
                          "/Author": "文绍华", "/Subject": variant["subject"]})
         with open(variant["pdf_out"], "wb") as f: wt.write(f)
     # reason txt (国奖版 uses the 200-word box; 学业奖学金 form may reuse it)

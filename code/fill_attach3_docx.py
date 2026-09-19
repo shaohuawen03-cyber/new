@@ -166,6 +166,37 @@ def main():
 
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     d.save(OUT)
+
+    # ---- layout pass: airy reason text WITHOUT breaking the 2-page design --
+    # Row heights (trHeight) encode the original 2-page A4 form exactly, so:
+    #  - the reason TEXT paragraph gets 1.5 line spacing (reads comfortably)
+    #  - empty filler paragraphs are pinned to exact 12pt lines so the row
+    #    cannot grow tall enough to spill onto a 3rd page in Word/WPS
+    from docx.shared import Pt
+    from docx.enum.text import WD_LINE_SPACING
+    d2 = Document(OUT)
+    for row in d2.tables[0].rows:
+        for c in row.cells:
+            if HINT in c.text and reason[:10] in c.text:
+                for p in c.paragraphs:
+                    t = p.text.strip()
+                    if t and reason[:10] in t:
+                        p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.ONE_POINT_FIVE
+                        p.paragraph_format.space_after = Pt(6)
+                    elif not t:
+                        p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.EXACTLY
+                        p.paragraph_format.line_spacing = Pt(12)
+                break
+    d2.save(OUT)
+
+    # ---- verify: row heights still match the original 2-page design --------
+    import zipfile, re
+    xml = zipfile.ZipFile(OUT).read('word/document.xml').decode('utf-8')
+    hs = [int(x) for x in re.findall(r'<w:trHeight w:val="(\d+)"[^/]*/>', xml)]
+    print('row heights (twips):', hs, 'sum(pt):', sum(hs) / 20.0)
+    usable_pt = (29.7 - 2.4 - 2.2) * 28.3465  # A4 minus margins
+    print('usable height/page(pt):', round(usable_pt, 1), '-> pages by design:', 'OK(2pp)' if sum(hs[:5]) / 20.0 + 60 < usable_pt and sum(hs[5:]) / 20.0 < usable_pt else 'CHECK')
+
     print('filled:', len(filled), '->', filled)
     print('saved:', OUT)
     if len(filled) < 14:
