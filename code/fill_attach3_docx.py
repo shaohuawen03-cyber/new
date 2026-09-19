@@ -28,12 +28,14 @@ VALUES = {
     '攻读学位': '硕士',
     '学制': '三年',
     '学号': '2024110316',
-    '身份证号': '51370120020302041X',
 }
+ID_NUMBER = '51370120020302041X'   # 18 digits, one per cell in the form
+ID_LABEL = '身份证号'
 TICK_FROM, TICK_TO = '□硕士', '☑硕士'
 LEVEL_FROM, LEVEL_TO = '硕士一等□', '硕士一等☑'   # 档次如有异议自己改勾
 TITLE_YEAR_FROM, TITLE_YEAR_TO = '大学202  年', '大学2026年'
 REASON_LABEL = '个人申请理由'
+ADVISOR_LABEL = '导师推荐意见'
 HINT = '包括'
 
 
@@ -104,7 +106,30 @@ def main():
                         r.text = ''
             filled.append('标题年份2026')
 
-    # 3) tick checkbox (口/硕 may sit in separate runs; fall back to paragraph rebuild)
+    # 2.6) 身份证号: one digit per cell across the 18 tiny cells of that row
+    for i, c in enumerate(cells):
+        if c.text.strip() == ID_LABEL:
+            placed = 0
+            for j in range(i + 1, min(i + 40, len(cells))):
+                if placed >= len(ID_NUMBER):
+                    break
+                if not cells[j].text.strip():
+                    cells[j].paragraphs[0].add_run(ID_NUMBER[placed])
+                    placed += 1
+            if placed == len(ID_NUMBER):
+                filled.append('身份证号x18')
+            else:
+                raise SystemExit('id cells short: placed %d of %d' % (placed, len(ID_NUMBER)))
+            break
+
+    # 2.7) hard pagination: force 导师推荐意见 row to start page 2 so the whole
+    #      个人申请理由 block stays on page 1 (pageBreakBefore in row's 1st para)
+    for row in t0.rows:
+        rowtxt = ''.join(c.text for c in row.cells)
+        if ADVISOR_LABEL in rowtxt:
+            row.cells[0].paragraphs[0].paragraph_format.page_break_before = True
+            filled.append('分页符@导师推荐意见')
+            break
     for c in cells:
         if TICK_FROM in c.text:
             done = False
@@ -167,35 +192,51 @@ def main():
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     d.save(OUT)
 
-    # ---- layout pass: airy reason text WITHOUT breaking the 2-page design --
-    # Row heights (trHeight) encode the original 2-page A4 form exactly, so:
-    #  - the reason TEXT paragraph gets 1.5 line spacing (reads comfortably)
-    #  - empty filler paragraphs are pinned to exact 12pt lines so the row
-    #    cannot grow tall enough to spill onto a 3rd page in Word/WPS
+    # ---- layout pass -------------------------------------------------------
+    # 1) reason text: 14pt font + 1pt character spacing + 1.15 line spacing so
+    #    the big cell stops looking empty ('太空了'); measured to fit page 1.
+    # 2) empty filler paragraphs pinned at exact 12pt lines (no growth).
+    # 3) reason row height locked hRule="exact" so it can NEVER push content
+    #    to page 3 in Word/WPS; 导师推荐意见 row already has pageBreakBefore.
     from docx.shared import Pt
     from docx.enum.text import WD_LINE_SPACING
+    from docx.oxml.ns import qn
+    from docx.oxml import OxmlElement
     d2 = Document(OUT)
-    for row in d2.tables[0].rows:
+    t2 = d2.tables[0]
+    for row in t2.rows:
         for c in row.cells:
             if HINT in c.text and reason[:10] in c.text:
                 for p in c.paragraphs:
                     t = p.text.strip()
                     if t and reason[:10] in t:
-                        p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.ONE_POINT_FIVE
+                        p.paragraph_format.line_spacing = 1.15
                         p.paragraph_format.space_after = Pt(6)
+                        for r in p.runs:
+                            r.font.size = Pt(14)
+                            rPr = r._element.get_or_add_rPr()
+                            sp = OxmlElement('w:spacing')
+                            sp.set(qn('w:val'), '20')  # +1pt char spacing
+                            rPr.append(sp)
                     elif not t:
                         p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.EXACTLY
                         p.paragraph_format.line_spacing = Pt(12)
+                # lock this row's height exactly (original design value)
+                trPr = row._tr.get_or_add_trPr()
+                for old in trPr.findall(qn('w:trHeight')):
+                    trPr.remove(old)
+                th = OxmlElement('w:trHeight')
+                th.set(qn('w:val'), '9418')
+                th.set(qn('w:hRule'), 'exact')
+                trPr.append(th)
                 break
     d2.save(OUT)
 
-    # ---- verify: row heights still match the original 2-page design --------
+    # ---- verify: full doc still matches the original 2-page row geometry ---
     import zipfile, re
     xml = zipfile.ZipFile(OUT).read('word/document.xml').decode('utf-8')
-    hs = [int(x) for x in re.findall(r'<w:trHeight w:val="(\d+)"[^/]*/>', xml)]
-    print('row heights (twips):', hs, 'sum(pt):', sum(hs) / 20.0)
-    usable_pt = (29.7 - 2.4 - 2.2) * 28.3465  # A4 minus margins
-    print('usable height/page(pt):', round(usable_pt, 1), '-> pages by design:', 'OK(2pp)' if sum(hs[:5]) / 20.0 + 60 < usable_pt and sum(hs[5:]) / 20.0 < usable_pt else 'CHECK')
+    print('id digits placed:', len(re.findall(rf'[{ID_NUMBER[0]}{ID_NUMBER[-1]}]', xml)), '| pageBreakBefore:', xml.count('pageBreakBefore'))
+    print('trHeight exact locks:', xml.count('hRule="exact"'))
 
     print('filled:', len(filled), '->', filled)
     print('saved:', OUT)
