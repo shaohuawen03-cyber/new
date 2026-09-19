@@ -1,9 +1,9 @@
 {
-  "round": 8,
-  "arena_state": "awaiting_check",
-  "local_state": "pending",
-  "arena_updated": "2026-09-19 09:50:35",
-  "local_updated": null,
-  "host": "",
-  "note": "verify: 附件3全填+xlsx已填 已送达"
+    "round":  8,
+    "arena_state":  "awaiting_check",
+    "local_state":  "passed",
+    "arena_updated":  "2026-09-19 09:50:35",
+    "local_updated":  "2026-09-19 17:51:53",
+    "host":  "LAPTOP-R77M5D6M",
+    "note":  "verify: 附件3全填+xlsx已填 已送达"
 }
