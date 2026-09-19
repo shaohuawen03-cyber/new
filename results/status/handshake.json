@@ -1,9 +1,9 @@
 {
-    "round":  9,
-    "arena_state":  "awaiting_check",
-    "local_state":  "passed",
-    "arena_updated":  "2026-09-19 10:22:14",
-    "local_updated":  "2026-09-19 18:23:17",
-    "host":  "LAPTOP-R77M5D6M",
-    "note":  "verify: 五改送达(申亮/首行xlsx/中性合订本/附件3两页)"
+  "round": 9,
+  "arena_state": "accepted",
+  "local_state": "passed",
+  "arena_updated": "2026-09-19 10:23:33",
+  "local_updated": "2026-09-19 18:23:17",
+  "host": "LAPTOP-R77M5D6M",
+  "note": "hands-free: criteria met"
 }
