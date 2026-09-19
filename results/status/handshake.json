@@ -1,9 +1,9 @@
 {
-  "round": 10,
-  "arena_state": "awaiting_check",
-  "local_state": "pending",
-  "arena_updated": "2026-09-19 10:40:40",
-  "local_updated": null,
-  "host": "",
-  "note": "verify: 附件3三修送达(身份证18格/两页锁死/字距加宽)"
+    "round":  10,
+    "arena_state":  "awaiting_check",
+    "local_state":  "passed",
+    "arena_updated":  "2026-09-19 10:40:40",
+    "local_updated":  "2026-09-19 18:42:16",
+    "host":  "LAPTOP-R77M5D6M",
+    "note":  "verify: 附件3三修送达(身份证18格/两页锁死/字距加宽)"
 }
