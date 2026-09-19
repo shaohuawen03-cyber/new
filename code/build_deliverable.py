@@ -35,8 +35,27 @@ def find_jcr_image():
     return None
 
 JCR_IMG = None  # resolved in main() via find_jcr_image()
-PDF_OUT = os.path.join(OUT_DIR, "国家奖学金支撑材料合订本_文绍华.pdf")
+
+# Two deliverable variants share the same body; only the cover / TOC / metadata differ.
+PDF_OUT_NAT = os.path.join(OUT_DIR, "国家奖学金支撑材料合订本_文绍华.pdf")
+PDF_OUT_SCH = os.path.join(OUT_DIR, "学业奖学金支撑材料合订本_文绍华.pdf")
 TXT_OUT = os.path.join(OUT_DIR, "申请理由200字.txt")
+
+# Scholarship label shown on the cover + PDF metadata.
+VARIANTS = {
+    "national": {
+        "kind": "国家奖学金",
+        "pdf_out": PDF_OUT_NAT,
+        "title_line": "2025—2026学年研究生国家奖学金",
+        "subject": "国家奖学金支撑材料合订本",
+    },
+    "school": {
+        "kind": "学业奖学金",
+        "pdf_out": PDF_OUT_SCH,
+        "title_line": "2025—2026学年研究生学业奖学金",
+        "subject": "学业奖学金支撑材料合订本",
+    },
+}
 
 REASON = ("本人文绍华，鲁东大学生命科学学院生物学2024级研究生，共青团员。"
 "入学以来勤奋刻苦，严谨求实，必修课9门全部及格，综合考评排名16/29，"
@@ -49,7 +68,7 @@ REASON = ("本人文绍华，鲁东大学生命科学学院生物学2024级研�
 
 # Every CJK char the PDF may print must exist in the subset font. This anchor
 # plus all literals in this file are the subset source (see fonts/README).
-CHARSET_ANCHOR = "年月日第部分页共计〇一二三四五六七八九十—…·（）／：；，。、待补充替换截图导官网占位封面目录清单生成说明打印核对复制正式官方声明插件标签影响因子检索类型归档编号卷期状态作者通讯单位密钥0123456789"
+CHARSET_ANCHOR = "年月日第部分页共计〇一二三四五六七八九十—…·（）／：；，。、待补充替换截图导官网占位封面目录清单生成说明打印核对复制正式官方声明插件标签影响因子检索类型归档编号卷期状态作者通讯单位密钥学业0123456789"
 
 JCR_INFO = [
     ("期刊", "Food Chemistry"),
@@ -105,8 +124,18 @@ def _register_fonts():
 def _styles():
     from reportlab.lib.styles import ParagraphStyle
     from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY
+    # The subset SHS fonts lack the glyph 业 (U+4E1A). For the school-scholarship
+    # variant we fall back to the Adobe CID serif STSong-Light for that one
+    # paragraph — it is not embedded but every reader ships a fallback.
+    from reportlab.pdfbase import pdfmetrics as _pm
+    from reportlab.pdfbase.cidfonts import UnicodeCIDFont
+    try:
+        _pm.registerFont(UnicodeCIDFont('STSong-Light'))
+    except Exception:
+        pass
     return {
         "title": ParagraphStyle("title", fontName="SHS-B", fontSize=20, leading=30, alignment=TA_CENTER, spaceAfter=12),
+        "title_fallback": ParagraphStyle("title_fallback", fontName="STSong-Light", fontSize=20, leading=30, alignment=TA_CENTER, spaceAfter=12),
         "h1": ParagraphStyle("h1", fontName="SHS-B", fontSize=16, leading=24, spaceBefore=6, spaceAfter=10),
         "h2": ParagraphStyle("h2", fontName="SHS-B", fontSize=13, leading=19, spaceBefore=8, spaceAfter=6),
         "body": ParagraphStyle("body", fontName="SHS", fontSize=11, leading=17, alignment=TA_JUSTIFY, spaceAfter=6),
@@ -127,13 +156,22 @@ def _footer(canvas, doc, offset=0):
     canvas.restoreState()
 
 
-def build_front(toc_entries, path):
+def build_front(toc_entries, path, variant):
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
     from reportlab.lib.pagesizes import A4
+    from fontTools.ttLib import TTFont
     S = _styles()
+    # pick font that actually contains every glyph of the title (subset SHS-B
+    # may miss a char like 业); fall back to STSong-Light in that case
+    shs_b_glyphs = set()
+    try:
+        shs_b_glyphs = set(TTFont(os.path.join(FONTS_DIR, "SHS-B-sub.ttf")).getBestCmap().keys())
+    except Exception:
+        pass
+    title_style = S["title"] if all(ord(c) in shs_b_glyphs or ord(c) < 128 for c in variant["title_line"]) else S["title_fallback"]
     story = []
     story.append(Spacer(1, 90))
-    story.append(Paragraph("2025—2026学年研究生国家奖学金", S["title"]))
+    story.append(Paragraph(variant["title_line"], title_style))
     story.append(Paragraph("申请支撑材料合订本", S["title"]))
     story.append(Spacer(1, 30))
     story.append(Paragraph("申请人：文绍华（鲁东大学 生命科学学院 生物学2024级 学号2024110316）", S["center"]))
@@ -151,7 +189,7 @@ def build_front(toc_entries, path):
     story.append(Spacer(1, 16))
     story.append(Paragraph("注：正文页码为本合订本连续页码；论文部分保留期刊原版式。", S["small"]))
     doc = SimpleDocTemplate(path, pagesize=A4, leftMargin=57, rightMargin=57, topMargin=57, bottomMargin=57,
-                            title="合订本封面目录", author="文绍华")
+                            title=variant["subject"], author="文绍华")
     doc.build(story, onFirstPage=lambda c, d: _footer(c, d, 0), onLaterPages=lambda c, d: _footer(c, d, 0))
 
 
@@ -217,6 +255,24 @@ def build_back_section_jcr(path, jcr_img):
     doc.build(story, onFirstPage=lambda c, d: _footer(c, d, 0), onLaterPages=lambda c, d: _footer(c, d, 0))
 
 
+def _stamp_pages(tmp, src, start_no, path):
+    from pypdf import PdfReader, PdfWriter
+    from reportlab.pdfgen import canvas as rl_canvas
+    from reportlab.lib.pagesizes import A4
+    rd = PdfReader(src); wt = PdfWriter()
+    for i, pg in enumerate(rd.pages):
+        ov = os.path.join(tmp, "ov%d.pdf" % i)
+        c = rl_canvas.Canvas(ov, pagesize=A4)
+        c.setFont("SHS", 9)
+        c.setFillColor("#ffffff"); c.rect(250, 20, 95, 16, stroke=0, fill=1)
+        c.setFillColor("#666666"); c.drawCentredString(297.5, 30, "第 %d 页" % (start_no + i))
+        c.save()
+        base = rd.pages[i]
+        base.merge_page(PdfReader(ov).pages[0])
+        wt.add_page(base)
+    with open(path, "wb") as f: wt.write(f)
+
+
 def main():
     from pypdf import PdfReader, PdfWriter
     os.makedirs(OUT_DIR, exist_ok=True)
@@ -231,7 +287,6 @@ def main():
     build_back_section_jcr(jcr_pdf, jcr_img)
     n_paper = len(PdfReader(PAPER_PDF).pages)
     n_wos = len(PdfReader(wos_pdf).pages); n_jcr = len(PdfReader(jcr_pdf).pages)
-    # front is cover + toc = 2 pages; renumber back sections with offset
     FRONT = 2
     p_paper = FRONT + 1
     p_wos = p_paper + n_paper
@@ -242,43 +297,30 @@ def main():
     toc = [("一、成果（论文全文，原样并入）", pg_range(p_paper, n_paper)),
            ("二、WOS收录和分区证明（含截图）", pg_range(p_wos, n_wos)),
            (jcr_label, pg_range(p_jcr, n_jcr))]
-    front_pdf = os.path.join(tmp, "front.pdf")
-    build_front(toc, front_pdf)
-    assert len(PdfReader(front_pdf).pages) == FRONT, "front must be 2 pages"
-    # stamp back sections with continuous page numbers
-    from reportlab.pdfgen import canvas as rl_canvas
-    from reportlab.lib.pagesizes import A4
-    def stamp_numbers(src, start_no, dst):
-        rd = PdfReader(src); wt = PdfWriter()
-        for i, pg in enumerate(rd.pages):
-            ov = os.path.join(tmp, "ov%d.pdf" % i)
-            c = rl_canvas.Canvas(ov, pagesize=A4)
-            c.setFont("SHS", 9); c.setFillColor("#666666")
-            # white-out old footer then draw new number
-            c.setFillColor("#ffffff"); c.rect(250, 20, 95, 16, stroke=0, fill=1)
-            c.setFillColor("#666666"); c.drawCentredString(297.5, 30, "第 %d 页" % (start_no + i))
-            c.save()
-            base = rd.pages[i]
-            base.merge_page(PdfReader(ov).pages[0])
-            wt.add_page(base)
-        with open(dst, "wb") as f: wt.write(f)
     wos_n = os.path.join(tmp, "wos_n.pdf"); jcr_n = os.path.join(tmp, "jcr_n.pdf")
-    # subset font must be findable by reportlab canvas: already registered
-    stamp_numbers(wos_pdf, p_wos, wos_n); stamp_numbers(jcr_pdf, p_jcr, jcr_n)
-    wt = PdfWriter()
-    for src in (front_pdf, PAPER_PDF, wos_n, jcr_n):
-        for pg in PdfReader(src).pages: wt.add_page(pg)
-    wt.add_metadata({"/Title": "2025-2026学年研究生国家奖学金申请支撑材料合订本-文绍华",
-                     "/Author": "文绍华", "/Subject": "国家奖学金支撑材料合订本"})
-    with open(PDF_OUT, "wb") as f: wt.write(f)
+    _stamp_pages(tmp, wos_pdf, p_wos, wos_n)
+    _stamp_pages(tmp, jcr_pdf, p_jcr, jcr_n)
+    # body pages are identical for both variants; only the cover differs
+    for key, variant in VARIANTS.items():
+        front_pdf = os.path.join(tmp, "front_%s.pdf" % key)
+        build_front(toc, front_pdf, variant)
+        assert len(PdfReader(front_pdf).pages) == FRONT, "front must be 2 pages"
+        wt = PdfWriter()
+        for src in (front_pdf, PAPER_PDF, wos_n, jcr_n):
+            for pg in PdfReader(src).pages: wt.add_page(pg)
+        wt.add_metadata({"/Title": variant["title_line"] + "申请支撑材料合订本-文绍华",
+                         "/Author": "文绍华", "/Subject": variant["subject"]})
+        with open(variant["pdf_out"], "wb") as f: wt.write(f)
+    # reason txt (国奖版 uses the 200-word box; 学业奖学金 form may reuse it)
     with open(TXT_OUT, "w", encoding="utf-8") as f:
         f.write("申请理由（200字）定稿\n\n" + REASON + "\n\n中文字数（含标点）：" + str(cjk_count(REASON))
               + "；全文字符数：" + str(len(REASON))
-              + "\n说明：本文件第3行为填表数据源，请在本机运行 code\\fill_reason.ps1 自动填入原表；也可手动复制正文到附件2“申请理由”栏。\n")
+              + "\n说明：本文件第3行为填表数据源。\n")
     total = FRONT + n_paper + n_wos + n_jcr
-    print("paper=%d wos=%d jcr=%d total=%d jcr_img=%s" % (n_paper, n_wos, n_jcr, total, jcr_img))
-    for p in (PDF_OUT, TXT_OUT):
-        print("OK", os.path.getsize(p), p)
+    print("variants=%d paper=%d wos=%d jcr=%d total=%d jcr_img=%s" % (len(VARIANTS), n_paper, n_wos, n_jcr, total, jcr_img))
+    for v in VARIANTS.values():
+        print("OK", os.path.getsize(v["pdf_out"]), v["pdf_out"])
+    print("OK", os.path.getsize(TXT_OUT), TXT_OUT)
     os.remove(wos_img)
 
 

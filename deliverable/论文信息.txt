@@ -1,0 +1,36 @@
+论文名称: Combined computational and spectroscopic analyses of the interactions between ginger compounds and bovine type I collagen
+发表刊物名: Food Chemistry
+刊物国别: 英国（The Netherlands/Elsevier 出版，刊物归属 UK）
+刊物级别（以文章发表当年为准）: 中科院 SCI 升级版 农林科学 1 区 TOP
+国际标准刊号（ISSN号）: 0308-8146
+发表日期: 2026-08-30
+录用日期: 2026-06-03
+作者排名(共同作者纳入计数): 共同第一作者（Shao-Hua Wen 与 Hui-Ke Ma 并列第一）
+国内统一刊号（CN）: 【无，国际期刊只填 ISSN；如系统强制，填无】
+刊物卷号: 521
+刊物期号: 【该刊无单独 issue，页 149910；可留空或填 0】
+语种: 英文
+论文类型: Article（研究论文）
+第一作者(中文): 文绍华
+作者总人数: 3（Shao-Hua Wen, Hui-Ke Ma, Liang Shen）
+第二作者(中文): 马慧珂【按拼音 Hui-Ke Ma，请确认常用中文名】
+第三作者(中文): 沈亮【Liang Shen，通讯作者】
+通讯作者（所有通讯作者(中文)）: 沈亮（Liang Shen，右上角星号 *）
+其他作者(中文): 【无】
+文章第一署名单位: 鲁东大学生命科学学院 / 鲁东大学食品工程学院食品药物健康研究院【两个单位并列，按 PDF 页眉】
+导师排名: 【按你申请表导师栏填，论文里没有“导师”字段】
+起始页数: 149910
+页~页: 149910（单一页码，电子刊）
+检索情况: SCI
+检索号: 001612255000001【WOS 入藏号；如要 DOI，为 10.1016/j.foodchem.2026.149910（按卷期推断，请核对系统）】
+论文类别: 食品科学/生物化学交叉研究
+论文状态: Published（在线发表）
+刊物影响因子（以文章发表当年为准）: 10.4（2025 年 JCR，IF = 10.4）【按你申请书上的 10.4；2024 版为 9.8】
+影响因子年份: 2025
+被引次数: 0【在线检索当日未见被引，以你检索系统为准】
+版本号: 【无，留空】
+出版地: 英国伦敦（125 London Wall, London EC2Y 5AS, England）
+出版社: ELSEVIER SCI LTD
+对应论文章节: 全篇（1-10 页）
+备注: (注：必须上传）已上传全文 PDF 至 sources/
+论文录用通知或发表论文(pdf): 选择文件 -> 选 sources\Combined computational and spectroscopic analyses of the interactions between ginger compounds and bovine type I collagen.pdf

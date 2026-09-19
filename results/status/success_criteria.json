@@ -1,8 +1,10 @@
 {
-  "description": "合订本v3: JCR原图已嵌入+信息表, 封面中性措辞, 无第四部分",
+  "description": "合订本v4: 双版本(国奖+学业奖学金)+JCR原图嵌入+封面无md措辞+子集字体兜底",
   "require_files": [
     "deliverable/国家奖学金支撑材料合订本_文绍华.pdf",
+    "deliverable/学业奖学金支撑材料合订本_文绍华.pdf",
     "deliverable/申请理由200字.txt",
+    "deliverable/论文信息.txt",
     "sources/jcr.png",
     "code/fill_reason.ps1",
     "code/build_deliverable.py",
@@ -10,15 +12,18 @@
     "code/fonts/SHS-B-sub.ttf"
   ],
   "forbid_files": [
-    "deliverable/附件2_申请审批表_已填申请理由.docx"
+    "deliverable/附件2_申请审批表_已填申请理由.docx",
+    "deliverable/附件3_学业奖学金_已填.docx"
   ],
   "require_contains": {
     "deliverable/申请理由200字.txt": "Food Chemistry",
     "code/fill_reason.ps1": "KWPS.Application",
-    "code/build_deliverable.py": "find_jcr_image"
+    "code/build_deliverable.py": "find_jcr_image",
+    "code/build_deliverable.py": "学业奖学金"
   },
   "min_bytes": {
     "deliverable/国家奖学金支撑材料合订本_文绍华.pdf": 4000000,
+    "deliverable/学业奖学金支撑材料合订本_文绍华.pdf": 4000000,
     "deliverable/申请理由200字.txt": 500,
     "sources/jcr.png": 20000,
     "code/fill_reason.ps1": 3000,
