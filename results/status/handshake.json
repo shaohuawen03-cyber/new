@@ -1,9 +1,9 @@
 {
-  "round": 7,
-  "arena_state": "awaiting_check",
-  "local_state": "pending",
-  "arena_updated": "2026-09-19 09:06:03",
-  "local_updated": null,
-  "host": "",
-  "note": "verify: 双版PDF完备+学业填表清单送达"
+    "round":  7,
+    "arena_state":  "awaiting_check",
+    "local_state":  "passed",
+    "arena_updated":  "2026-09-19 09:06:03",
+    "local_updated":  "2026-09-19 17:37:01",
+    "host":  "LAPTOP-R77M5D6M",
+    "note":  "verify: 双版PDF完备+学业填表清单送达"
 }

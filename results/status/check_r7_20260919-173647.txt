@@ -1,0 +1,50 @@
+check round 7 on LAPTOP-R77M5D6M - passed (exit 0)
+cmd: powershell -NoProfile -ExecutionPolicy Bypass -File code/local_check.ps1
+elapsed: 14s
+
+OK: all .ps1 files are ASCII-only
+OK: sync.config.json branch=arena/01a0af01-new
+OK: sync.config.json branch matches HEAD (arena/01a0af01-new)
+OK: root scripts identical to skills/git-sync/scripts
+OK: no drive-style variable typos ($var:)
+== exits in Invoke-PollRound: 6
+OK: every exit path sets its closing summary
+== exits in Invoke-PollOnce: 2 (lock held / crashed / normal)
+OK: loop closing lines covered (6 exit paths, all with their own summary)
+OK: every .ps1 parses
+   (gate ran via E:\hermes\git\bin\bash.exe [git])
+== accept 2a: silent push PROVEN (ls-remote + push --dry-run, prompts disabled)
+== auth: this clone is PINNED to gh account 'shaohuawen03-cyber' (other clones use the machine default)
+== accept 2b (fallback): one LONG-LIVED loop process - one brief flash per logon,
+   not per poll. For zero flash: admin PowerShell -> .\watch.ps1 -Unregister ;
+   .\watch.ps1 -Register -Headless   (or fix the launcher, see watch-*.log)
+== exits in Invoke-PollRound: 6
+OK: every exit path sets its closing summary
+== exits in Invoke-PollOnce: 2 (lock held / crashed / normal)
+OK: loop closing lines covered (6 exit paths, all with their own summary)
+== check_loop_summary PASSED
+== accept 2c: watcher closing lines verified (every exit path has its summary)
+== accept 2d: hands-free auto_pull/auto_push present in watch.ps1
+== success criteria: results/status/success_criteria.json
+   合订本v4: 双版本(国奖+学业奖学金)+JCR原图嵌入+封面无md措辞+子集字体兜底
+   OK   exists: deliverable/国家奖学金支撑材料合订本_文绍华.pdf (4959992 B)
+   OK   exists: deliverable/学业奖学金支撑材料合订本_文绍华.pdf (4959482 B)
+   OK   exists: deliverable/申请理由200字.txt (798 B)
+   OK   exists: deliverable/论文信息.txt (2312 B)
+   OK   exists: sources/jcr.png (54365 B)
+   OK   exists: code/fill_reason.ps1 (6532 B)
+   OK   exists: code/build_deliverable.py (18629 B)
+   OK   exists: code/fonts/SHS-R-sub.ttf (152008 B)
+   OK   exists: code/fonts/SHS-B-sub.ttf (151256 B)
+   OK   absent: deliverable/附件2_申请审批表_已填申请理由.docx
+   OK   absent: deliverable/附件3_学业奖学金_已填.docx
+   OK   contains deliverable/申请理由200字.txt <- Food Chemistry
+   OK   contains code/fill_reason.ps1 <- KWPS.Application
+   OK   contains code/build_deliverable.py <- 学业奖学金
+   OK   size deliverable/国家奖学金支撑材料合订本_文绍华.pdf: 4959992 >= 4000000
+   OK   size deliverable/学业奖学金支撑材料合订本_文绍华.pdf: 4959482 >= 4000000
+   OK   size deliverable/申请理由200字.txt: 798 >= 500
+   OK   size sources/jcr.png: 54365 >= 20000
+   OK   size code/fill_reason.ps1: 6532 >= 3000
+   OK   size code/fonts/SHS-R-sub.ttf: 152008 >= 50000
+== local checks passed
