@@ -1,9 +1,9 @@
 {
-    "round":  4,
-    "arena_state":  "awaiting_check",
-    "local_state":  "failed",
-    "arena_updated":  "2026-09-24 02:28:54",
-    "local_updated":  "2026-09-24 10:30:49",
-    "host":  "LAPTOP-R77M5D6M",
-    "note":  "round 4: async ssh probe (no event-loop deadlock) - expect the real ssh -v reason or a pass"
+  "round": 5,
+  "arena_state": "awaiting_check",
+  "local_state": "pending",
+  "arena_updated": "2026-09-24 02:31:41",
+  "local_updated": null,
+  "host": "",
+  "note": "round 5: fresh key file per run (EPERM fixed) - expect the ssh -v probe to finally speak"
 }
