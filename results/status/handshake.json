@@ -1,9 +1,9 @@
 {
-  "round": 8,
-  "arena_state": "accepted",
-  "local_state": "passed",
-  "arena_updated": "2026-09-24 02:57:36",
-  "local_updated": "2026-09-24 10:57:01",
-  "host": "LAPTOP-R77M5D6M",
-  "note": "round 8: v0.0.7 - contributed terminal profile + default profile switch + password->passwordless auto setup"
+  "round": 9,
+  "arena_state": "awaiting_check",
+  "local_state": "pending",
+  "arena_updated": "2026-09-24 03:03:23",
+  "local_updated": null,
+  "host": "",
+  "note": "round 9: v0.0.8 static settings profile + Antigravity install"
 }
