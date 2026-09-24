@@ -119,6 +119,25 @@ if ($nodeCmd) {
     Mark $false 'node.js found' 'install Node LTS from nodejs.org, or: conda install -c conda-forge nodejs'
 }
 
+# ---- 8. configure the terminal profile FOR the user (no password needed:
+#         without a key the terminal simply asks for it, like Xshell does)
+$targetFile = Join-Path $PSScriptRoot 'terminal_target.txt'
+if (Test-Path -LiteralPath $targetFile) {
+    $sshTarget = (Get-Content -LiteralPath $targetFile -Raw).Trim()
+    if ($sshTarget) {
+        Write-Output ('[..] writing the terminal profile for ' + $sshTarget)
+        & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'setup_terminal.ps1') -Target $sshTarget -NoKey 2>&1 |
+            Out-String | Write-Output
+        $vsSettings = Join-Path $env:APPDATA 'Code\User\settings.json'
+        $okProfile = $false
+        if (Test-Path -LiteralPath $vsSettings) {
+            $txt = [System.IO.File]::ReadAllText($vsSettings, (New-Object System.Text.UTF8Encoding($false)))
+            $okProfile = ($txt -like '*SSH Remote Lite (*') -and ($txt -like '*defaultProfile.windows*')
+        }
+        Mark $okProfile 'terminal profile written into VS Code settings.json'
+    }
+}
+
 # ---- 9. diagnostics (never fails the round - it only reports the real state)
 Write-Output ''
 Write-Output '===== DIAGNOSTICS ====='
@@ -155,6 +174,39 @@ if (Test-Path -LiteralPath $sshHome) {
     Get-ChildItem -LiteralPath $sshHome -Force | ForEach-Object { Write-Output ('   ' + $_.Name + '  ' + $_.Length + ' bytes') }
 } else {
     Write-Output '   (no .ssh directory)'
+}
+Write-Output '--- ~/.ssh/config (host blocks only)'
+$sshCfg = Join-Path $env:USERPROFILE '.ssh\config'
+if (Test-Path -LiteralPath $sshCfg) {
+    (Get-Content -LiteralPath $sshCfg) | ForEach-Object { Write-Output ('   ' + $_) }
+} else {
+    Write-Output '   (no ~/.ssh/config)'
+}
+Write-Output '--- network to the server'
+try {
+    $t = Test-NetConnection -ComputerName '10.10.5.210' -Port 22 -WarningAction SilentlyContinue
+    Write-Output ('   ping=' + $t.PingSucceeded + '  tcp22=' + $t.TcpTestSucceeded + '  via=' + $t.SourceAddress.IPAddress)
+} catch {
+    Write-Output ('   Test-NetConnection failed: ' + $_.Exception.Message)
+}
+Write-Output '--- Antigravity layout'
+$agRoot = Join-Path $env:LOCALAPPDATA 'Programs\Antigravity'
+if (Test-Path -LiteralPath $agRoot) {
+    foreach ($sub in @('bin', '')) {
+        $d = if ($sub) { Join-Path $agRoot $sub } else { $agRoot }
+        if (Test-Path -LiteralPath $d) {
+            Get-ChildItem -LiteralPath $d -ErrorAction SilentlyContinue |
+                Select-Object -First 20 |
+                ForEach-Object { Write-Output ('   ' + $d + ' > ' + $_.Name) }
+        }
+    }
+}
+foreach ($cand in @(
+    (Join-Path $env:APPDATA 'Antigravity\User\settings.json'),
+    (Join-Path $env:APPDATA 'Google\Antigravity\User\settings.json'),
+    (Join-Path $env:USERPROFILE '.antigravity\settings.json'),
+    (Join-Path $env:APPDATA 'antigravity\User\settings.json'))) {
+    Write-Output ('   settings candidate: ' + $cand + '  exists=' + (Test-Path -LiteralPath $cand))
 }
 Write-Output '--- ssh client'
 $sshExe = 'C:\Windows\System32\OpenSSH\ssh.exe'
