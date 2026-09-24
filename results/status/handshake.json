@@ -1,9 +1,9 @@
 {
-    "round":  10,
-    "arena_state":  "awaiting_check",
-    "local_state":  "passed",
-    "arena_updated":  "2026-09-24 06:38:39",
-    "local_updated":  "2026-09-24 14:57:13",
-    "host":  "LAPTOP-R77M5D6M",
-    "note":  "round 10: diagnostics only - report settings/profile/key/ssh state"
+  "round": 11,
+  "arena_state": "awaiting_check",
+  "local_state": "pending",
+  "arena_updated": "2026-09-24 07:02:27",
+  "local_updated": null,
+  "host": "",
+  "note": "round 11: write the plain terminal profile into VS Code settings for the user + full diagnostics (server was TCP-timeout in round 10)"
 }
