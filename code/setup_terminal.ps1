@@ -212,6 +212,14 @@ foreach ($t in $targets) {
 
     $profiles = $json.$profKey
     if (-not $profiles) { $profiles = New-Object PSObject }
+    # drop stale "SSH Remote Lite (...)" entries we wrote earlier (a bad run
+    # once produced "SSH Remote Lite (root@-Target)") - keep only the current one
+    foreach ($stale in @($profiles.PSObject.Properties |
+            Where-Object { $_.Name -like 'SSH Remote Lite (*' -and $_.Name -ne $profileName } |
+            ForEach-Object { $_.Name })) {
+        $profiles.PSObject.Properties.Remove($stale)
+        Say ("   removed stale profile: " + $stale)
+    }
     $entry = New-Object PSObject
     Add-Member -InputObject $entry -MemberType NoteProperty -Name 'path' -Value $sshExe
     Add-Member -InputObject $entry -MemberType NoteProperty -Name 'args' -Value ([string[]]$argList.ToArray())
