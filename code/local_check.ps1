@@ -131,13 +131,15 @@ if (Test-Path -LiteralPath $targetFile) {
         # also install the key and make the login passwordless; without it we
         # just write a profile that asks for the password in the terminal.
         $pwFile = Join-Path $env:USERPROFILE '.srl_password'
-        $setupArgs = @('-Target', $sshTarget)
+        # hashtable splatting: array splatting bound '-Target' as the VALUE
+        # (the profile came out as root@-Target, round 15)
+        $setupArgs = @{ Target = $sshTarget }
         $havePw = $false
         if (Test-Path -LiteralPath $pwFile) {
             $pw = ([System.IO.File]::ReadAllText($pwFile)).Trim()
-            if ($pw) { $setupArgs += @('-Password', $pw); $havePw = $true }
+            if ($pw) { $setupArgs['Password'] = $pw; $havePw = $true }
         }
-        if (-not $havePw) { $setupArgs += '-NoKey' }
+        if (-not $havePw) { $setupArgs['NoKey'] = $true }
         Write-Output ('   password file present: ' + $havePw)
         # in-process on purpose: a child powershell running console-less gave
         # back zero output in round 11
@@ -162,11 +164,27 @@ if (-not (Test-Path -LiteralPath $realExe)) {
     $rc = Get-Command ssh -ErrorAction SilentlyContinue
     if ($rc) { $realExe = [string]$rc.Source }
 }
-$tcpOk = $false
-try {
-    $tn = Test-NetConnection -ComputerName $realHost -Port 22 -WarningAction SilentlyContinue
-    $tcpOk = [bool]$tn.TcpTestSucceeded
-} catch { $tcpOk = $false }
+# a plain TCP connect with an explicit timeout: Test-NetConnection also pings
+# first and reports False on ICMP-filtered networks / slow VPN links
+function Test-Tcp([string]$h, [int]$p, [int]$timeoutMs = 8000) {
+    $client = New-Object System.Net.Sockets.TcpClient
+    try {
+        $iar = $client.BeginConnect($h, $p, $null, $null)
+        if (-not $iar.AsyncWaitHandle.WaitOne($timeoutMs, $false)) { return $false }
+        $client.EndConnect($iar)
+        return $true
+    } catch {
+        return $false
+    } finally {
+        $client.Close()
+    }
+}
+$tcpOk = Test-Tcp $realHost 22
+if (-not $tcpOk) {
+    Start-Sleep -Seconds 2
+    $tcpOk = Test-Tcp $realHost 22 12000
+}
+Write-Output ('   tcp probe -> ' + $tcpOk)
 if (-not $tcpOk) {
     Write-Output ("[SKIP] " + $realHost + ":22 is not reachable from here (VPN/LAN down) - real-server checks skipped")
 } else {
