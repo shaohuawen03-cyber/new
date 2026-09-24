@@ -150,26 +150,43 @@ if (Test-Path -LiteralPath $targetFile) {
         $pwFile = Join-Path $env:USERPROFILE '.srl_password'
         # hashtable splatting: array splatting bound '-Target' as the VALUE
         # (the profile came out as root@-Target, round 15)
+        $modeFile = Join-Path $PSScriptRoot 'terminal_mode.txt'
+        $termMode = 'write'
+        if (Test-Path -LiteralPath $modeFile) {
+            $termMode = ((Get-Content -LiteralPath $modeFile -Raw).Trim().ToLower())
+        }
+        Write-Output ('   terminal mode: ' + $termMode)
         $setupArgs = @{ Target = $sshTarget }
+        if ($termMode -eq 'remove') { $setupArgs['Remove'] = $true }
         $havePw = $false
         if (Test-Path -LiteralPath $pwFile) {
             $pw = ([System.IO.File]::ReadAllText($pwFile)).Trim()
             if ($pw) { $setupArgs['Password'] = $pw; $havePw = $true }
         }
         if (-not $havePw) { $setupArgs['NoKey'] = $true }
+        if ($termMode -eq 'off') {
+            Write-Output '   terminal profile management disabled (code/terminal_mode.txt = off)'
+            $setupArgs = $null
+        }
         Write-Output ('   password file present: ' + $havePw)
         # in-process on purpose: a child powershell running console-less gave
         # back zero output in round 11
-        & (Join-Path $PSScriptRoot 'setup_terminal.ps1') @setupArgs 2>&1 |
-            ForEach-Object { Write-Output ('   ' + $_) }
-        Write-Output ('   setup_terminal exit: ' + $LASTEXITCODE)
+        if ($setupArgs) {
+            & (Join-Path $PSScriptRoot 'setup_terminal.ps1') @setupArgs 2>&1 |
+                ForEach-Object { Write-Output ('   ' + $_) }
+            Write-Output ('   setup_terminal exit: ' + $LASTEXITCODE)
+        }
         $vsSettings = Join-Path $env:APPDATA 'Code\User\settings.json'
         $okProfile = $false
         if (Test-Path -LiteralPath $vsSettings) {
             $txt = [System.IO.File]::ReadAllText($vsSettings, (New-Object System.Text.UTF8Encoding($false)))
             $okProfile = ($txt -like '*SSH Remote Lite (*') -and ($txt -like '*defaultProfile.windows*')
         }
-        Mark $okProfile 'terminal profile written into VS Code settings.json'
+        if ($termMode -eq 'remove') {
+            Mark (-not $okProfile) 'SSH terminal profile removed from VS Code settings.json'
+        } elseif ($termMode -ne 'off') {
+            Mark $okProfile 'terminal profile written into VS Code settings.json'
+        }
     }
 }
 

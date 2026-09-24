@@ -22,6 +22,7 @@
 
 param(
     [Parameter(Mandatory = $true)][string]$Target,
+    [switch]$Remove,
     [string]$Password = '',
     [string]$KeyPath = '',
     [switch]$NoKey,
@@ -31,6 +32,11 @@ param(
 $ErrorActionPreference = 'Continue'
 $repo = Split-Path -Parent $PSScriptRoot
 Set-Location -LiteralPath $repo
+
+# -Remove: take the default terminal back to whatever the IDE uses normally
+# (PowerShell). Every "SSH Remote Lite (...)" profile we ever wrote is dropped
+# and terminal.integrated.defaultProfile.<os> is deleted, not overwritten, so
+# the IDE falls back to its own default.
 
 # NB: Write-Output, never Write-Host. The watcher runs this script without a
 # console (zero-window vbs launcher) through a redirected pipe, and Write-Host
@@ -51,6 +57,8 @@ $hostName = $Matches[2]
 $port = if ($Matches[3]) { [int]$Matches[3] } else { 22 }
 Say "== target : ${user}@${hostName}:${port}" 'Cyan'
 
+if ($Remove) { $NoKey = $true }
+
 # ---------------------------------------------------------------- ssh.exe
 $sshExe = ''
 foreach ($c in @(
@@ -70,13 +78,16 @@ if (-not $sshExe) {
 Ok "ssh client: $sshExe"
 
 # ---------------------------------------------------------------- reachable?
-$tcp = Test-NetConnection -ComputerName $hostName -Port $port -WarningAction SilentlyContinue
-if ($tcp -and $tcp.TcpTestSucceeded) {
+$tcp = if ($Remove) { $null } else { Test-NetConnection -ComputerName $hostName -Port $port -WarningAction SilentlyContinue }
+if ($Remove) {
+    Say '== mode: REMOVE (restoring the IDE default terminal)'
+} elseif ($tcp -and $tcp.TcpTestSucceeded) {
     Ok "tcp ${hostName}:${port} is open"
 } else {
     Warn "tcp ${hostName}:${port} did NOT answer - VPN / firewall / wrong address?"
     Warn 'the profile will still be written, but the terminal cannot connect until this works'
 }
+
 
 # ---------------------------------------------------------------- key
 $keyToUse = ''
@@ -212,6 +223,30 @@ foreach ($t in $targets) {
 
     $profiles = $json.$profKey
     if (-not $profiles) { $profiles = New-Object PSObject }
+    if ($Remove) {
+        $gone = 0
+        foreach ($mine in @($profiles.PSObject.Properties |
+                Where-Object { $_.Name -like 'SSH Remote Lite (*' } |
+                ForEach-Object { $_.Name })) {
+            $profiles.PSObject.Properties.Remove($mine)
+            Say ("   removed profile: " + $mine)
+            $gone++
+        }
+        if ($json.PSObject.Properties[$profKey]) { $json.$profKey = $profiles }
+        $curDef = if ($json.PSObject.Properties[$defKey]) { [string]$json.$defKey } else { '' }
+        if ($curDef -like 'SSH Remote Lite*') {
+            $json.PSObject.Properties.Remove($defKey)
+            Say "   removed $defKey (the IDE goes back to its own default shell)"
+        }
+        if ($WhatIf) { Say '   -WhatIf: nothing written.'; continue }
+        if (Test-Path -LiteralPath $p) {
+            Copy-Item -LiteralPath $p -Destination ($p + '.srl-bak') -Force -ErrorAction SilentlyContinue
+        }
+        [System.IO.File]::WriteAllText($p, ($json | ConvertTo-Json -Depth 20) + "`r`n", (New-Object System.Text.UTF8Encoding($false)))
+        Ok ("default terminal restored to the IDE default (removed " + $gone + " profile(s))")
+        $written++
+        continue
+    }
     # drop stale "SSH Remote Lite (...)" entries we wrote earlier (a bad run
     # once produced "SSH Remote Lite (root@-Target)") - keep only the current one
     foreach ($stale in @($profiles.PSObject.Properties |
