@@ -69,3 +69,25 @@ test('没有私钥时不加 -i', () => {
   assert.ok(!args.includes('-i'), `不应出现 -i: ${args.join(' ')}`);
   assert.equal(args[args.length - 1], 'u@h');
 });
+
+// 只写自己那一条(v0.0.8 把 IDE 内置 profile 一起固化进用户设置, 会搞坏终端)
+import { mergeProfileSetting, sanitizeKeyPath } from '../profile';
+
+test('mergeProfileSetting: 只增加自己那一条, 不动别人的', () => {
+  const own = { 'My Bash': { path: 'bash' } };
+  const out = mergeProfileSetting(own, 'SSH Remote Lite (u@h)', {
+    path: 'ssh',
+    args: ['u@h'],
+  });
+  assert.deepEqual(Object.keys(out).sort(), ['My Bash', 'SSH Remote Lite (u@h)']);
+  assert.deepEqual(out['My Bash'], { path: 'bash' });
+  // undefined(用户从没写过 profiles)也要能处理
+  const fresh = mergeProfileSetting(undefined, 'X', { path: 'p', args: [] });
+  assert.deepEqual(Object.keys(fresh), ['X']);
+});
+
+test('sanitizeKeyPath: 不存在的私钥不会被写进命令行', () => {
+  assert.equal(sanitizeKeyPath('C:\\gone\\id', () => false), undefined);
+  assert.equal(sanitizeKeyPath('C:\\here\\id', () => true), 'C:\\here\\id');
+  assert.equal(sanitizeKeyPath(undefined, () => true), undefined);
+});

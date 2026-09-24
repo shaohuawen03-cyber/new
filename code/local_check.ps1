@@ -111,7 +111,7 @@ if ($nodeCmd) {
         npm install --no-audit --no-fund 2>&1 | Out-String | Write-Output
     }
     npm test 2>&1 | Out-String | Write-Output
-    Mark ($LASTEXITCODE -eq 0) 'npm test (unit + e2e + ssh CLI + autologin + profile contract, 24 cases)'
+    Mark ($LASTEXITCODE -eq 0) 'npm test (unit + e2e + ssh CLI + autologin + profile contract, 26 cases)'
     npm run it 2>&1 | Out-String | Write-Output
     Mark ($LASTEXITCODE -eq 0) 'npm run it (real VS Code activates ext + SSH terminal opens and stays alive)'
     Pop-Location

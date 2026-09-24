@@ -4,7 +4,13 @@ import * as os from 'os';
 import * as path from 'path';
 import { SshFileSystemProvider } from './fs';
 import { sshTerminalOptions, openSshTerminal } from './terminal';
-import { PROFILE_ID, staticProfileEntry, staticProfileName } from './profile';
+import {
+  PROFILE_ID,
+  staticProfileEntry,
+  staticProfileName,
+  mergeProfileSetting,
+  sanitizeKeyPath,
+} from './profile';
 import { findSshExecutable } from './terminal';
 import { ensurePasswordlessLogin } from './autologin';
 import {
@@ -259,11 +265,16 @@ export function activate(context: vscode.ExtensionContext): void {
       // 只靠 contributes.terminal.profiles 时, 插件没激活的那一刻 IDE 会报
       //   No terminal profile provider registered for id "sshRemoteLite.terminal"
       // 然后退回本地 shell(用户实测 2026-09-24)。
-      const name = staticProfileName(cfg);
-      const entry = staticProfileEntry(cfg, findSshExecutable());
+      const safeCfg = {
+        ...cfg,
+        privateKeyPath: sanitizeKeyPath(cfg.privateKeyPath, (p) => fs.existsSync(p)),
+      };
+      const name = staticProfileName(safeCfg);
+      const entry = staticProfileEntry(safeCfg, findSshExecutable());
       const termConf = vscode.workspace.getConfiguration('terminal.integrated');
-      const profiles = { ...(termConf.get<Record<string, unknown>>(`profiles.${key}`) ?? {}) };
-      profiles[name] = entry;
+      // inspect().globalValue = 用户自己的那份, 不含 IDE 内置 profile
+      const own = termConf.inspect<Record<string, unknown>>(`profiles.${key}`)?.globalValue;
+      const profiles = mergeProfileSetting(own, name, entry);
       await termConf.update(`profiles.${key}`, profiles, vscode.ConfigurationTarget.Global);
       await termConf.update(`defaultProfile.${key}`, name, vscode.ConfigurationTarget.Global);
       vscode.window.showInformationMessage(
