@@ -28,13 +28,46 @@ export function hardenKeyFile(file: string): void {
     return;
   }
   const me = process.env.USERNAME || process.env.USER || '';
+  const before = (() => {
+    try {
+      return fs.readFileSync(file).length;
+    } catch {
+      return -1;
+    }
+  })();
   try {
     execFileSync('icacls', [file, '/inheritance:r'], { stdio: 'pipe' });
+    // grant by well-known SID first: a non-ASCII user name (e.g. Chinese) can
+    // fail to match through icacls' code page, and then the file ends up with
+    // NO ACE at all - ssh reads nothing and reports "invalid format".
+    try {
+      execFileSync('icacls', [file, '/grant:r', '*S-1-3-4:R'], { stdio: 'pipe' });
+    } catch {
+      /* OWNER RIGHTS not supported here - fall through to the name */
+    }
     if (me) {
-      execFileSync('icacls', [file, '/grant:r', `${me}:R`], { stdio: 'pipe' });
+      try {
+        execFileSync('icacls', [file, '/grant', `${me}:R`], { stdio: 'pipe' });
+      } catch {
+        /* ignore */
+      }
     }
   } catch {
-    /* ignore - ssh 会在失败时给出明确报错 */
+    /* ignore */
+  }
+  // verify we can still read it; if not, undo the lockdown rather than leave
+  // an unusable key behind
+  try {
+    const after = fs.readFileSync(file).length;
+    if (after !== before) {
+      throw new Error('size changed');
+    }
+  } catch {
+    try {
+      execFileSync('icacls', [file, '/reset'], { stdio: 'pipe' });
+    } catch {
+      /* ignore */
+    }
   }
 }
 

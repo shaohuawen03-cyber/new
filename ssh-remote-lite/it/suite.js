@@ -75,12 +75,38 @@ function writePrivateKey(dir, contents) {
     if (process.platform === 'win32') {
       try {
         cp.execFileSync('icacls', [file, '/inheritance:r'], { stdio: 'pipe' });
-        if (me) {
-          cp.execFileSync('icacls', [file, '/grant:r', `${me}:R`], { stdio: 'pipe' });
+        try {
+          cp.execFileSync('icacls', [file, '/grant:r', '*S-1-3-4:R'], { stdio: 'pipe' });
+        } catch (e) {
+          /* OWNER RIGHTS unsupported - try the name below */
         }
-        log(`key ACL locked down for ${me}`);
+        if (me) {
+          try {
+            cp.execFileSync('icacls', [file, '/grant', `${me}:R`], { stdio: 'pipe' });
+          } catch (e) {
+            /* ignore */
+          }
+        }
+        log(`key ACL locked down (owner rights${me ? ' + ' + me : ''})`);
       } catch (e) {
         log(`icacls failed (continuing): ${e.message}`);
+      }
+      // A Chinese user name can make the grant miss, leaving the file with no
+      // ACE at all: ssh then reads nothing and says `Load key: invalid format`
+      // (round 11). Prove the file is still readable, else undo the lockdown.
+      let readable = false;
+      try {
+        readable = fs.readFileSync(file, 'utf8').includes('PRIVATE KEY');
+      } catch (e) {
+        readable = false;
+      }
+      if (!readable) {
+        log('key became unreadable after icacls - resetting its ACL');
+        try {
+          cp.execFileSync('icacls', [file, '/reset'], { stdio: 'pipe' });
+        } catch (e) {
+          /* ignore */
+        }
       }
     }
     return file;

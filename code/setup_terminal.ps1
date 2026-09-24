@@ -32,10 +32,14 @@ $ErrorActionPreference = 'Continue'
 $repo = Split-Path -Parent $PSScriptRoot
 Set-Location -LiteralPath $repo
 
-function Say([string]$m, [string]$c = 'Gray') { Write-Host $m -ForegroundColor $c }
-function Ok([string]$m)   { Write-Host "  [ok]   $m" -ForegroundColor Green }
-function Warn([string]$m) { Write-Host "  [warn] $m" -ForegroundColor Yellow }
-function Bad([string]$m)  { Write-Host "  [FAIL] $m" -ForegroundColor Red }
+# NB: Write-Output, never Write-Host. The watcher runs this script without a
+# console (zero-window vbs launcher) through a redirected pipe, and Write-Host
+# output is then lost - round 11 logged nothing at all and looked like a
+# script that never ran.
+function Say([string]$m, [string]$c = 'Gray') { Write-Output $m }
+function Ok([string]$m)   { Write-Output "  [ok]   $m" }
+function Warn([string]$m) { Write-Output "  [warn] $m" }
+function Bad([string]$m)  { Write-Output "  [FAIL] $m" }
 
 # ---------------------------------------------------------------- target
 if ($Target -notmatch '^(?:([^@]+)@)?([^:@]+)(?::(\d+))?$') {
@@ -100,7 +104,7 @@ if (-not $NoKey) {
             $keyToUse = ''
         } else {
             & node (Join-Path $repo 'code\deploy_key.js') ("${user}@${hostName}:${port}") $Password 2>&1 |
-                ForEach-Object { Write-Host "   $_" }
+                ForEach-Object { Write-Output "   $_" }
             $deployed = ($LASTEXITCODE -eq 0)
             $keyToUse = Join-Path $env:USERPROFILE '.ssh\id_ed25519'
             if ($deployed -and (Test-KeyLogin $keyToUse)) {
@@ -119,16 +123,37 @@ if (-not $NoKey) {
 }
 
 # ---------------------------------------------------------------- profile
+# If ~/.ssh/config already describes this host (user, port, IdentityFile,
+# ProxyJump ...), the profile must NOT fight it: plain `ssh <host>` picks all
+# of that up. Overriding with our own -i/-p is how a working ssh config gets
+# broken. (This machine has: Host 25wenshaohua 10.10.5.210 hpc-mu01 ...)
+$hasConfigBlock = $false
+$sshConfigFile = Join-Path $env:USERPROFILE '.ssh\config'
+if (Test-Path -LiteralPath $sshConfigFile) {
+    foreach ($ln in (Get-Content -LiteralPath $sshConfigFile)) {
+        if ($ln -match '^\s*Host\s+(.+)$') {
+            $names = ($Matches[1] -split '\s+')
+            if ($names -contains $hostName) { $hasConfigBlock = $true; break }
+        }
+    }
+}
+
 $profileName = "SSH Remote Lite (${user}@${hostName})"
 $argList = New-Object System.Collections.ArrayList
-$null = $argList.Add('-p'); $null = $argList.Add("$port")
-$null = $argList.Add('-o'); $null = $argList.Add('StrictHostKeyChecking=accept-new')
-$null = $argList.Add('-o'); $null = $argList.Add('ServerAliveInterval=30')
-if ($keyToUse) {
-    $null = $argList.Add('-o'); $null = $argList.Add('IdentitiesOnly=yes')
-    $null = $argList.Add('-i'); $null = $argList.Add($keyToUse)
+if ($hasConfigBlock) {
+    Ok "~/.ssh/config already has a Host block for $hostName - the profile will just use it"
+    $null = $argList.Add('-o'); $null = $argList.Add('StrictHostKeyChecking=accept-new')
+    $null = $argList.Add($hostName)
+} else {
+    $null = $argList.Add('-p'); $null = $argList.Add("$port")
+    $null = $argList.Add('-o'); $null = $argList.Add('StrictHostKeyChecking=accept-new')
+    $null = $argList.Add('-o'); $null = $argList.Add('ServerAliveInterval=30')
+    if ($keyToUse) {
+        $null = $argList.Add('-o'); $null = $argList.Add('IdentitiesOnly=yes')
+        $null = $argList.Add('-i'); $null = $argList.Add($keyToUse)
+    }
+    $null = $argList.Add("${user}@${hostName}")
 }
-$null = $argList.Add("${user}@${hostName}")
 
 Say ''
 Say "== profile : $profileName" 'Cyan'
@@ -145,6 +170,20 @@ $targets = @(
     @{ name = 'Antigravity';      path = (Join-Path $env:APPDATA 'Antigravity\User\settings.json') },
     @{ name = 'Cursor';           path = (Join-Path $env:APPDATA 'Cursor\User\settings.json') }
 )
+# Forks keep their user data wherever they like, so also look for any
+# <root>\User\settings.json that belongs to a VS Code-like app.
+foreach ($root in @($env:APPDATA, (Join-Path $env:LOCALAPPDATA 'Programs'), $env:USERPROFILE)) {
+    if (-not $root -or -not (Test-Path -LiteralPath $root)) { continue }
+    Get-ChildItem -LiteralPath $root -Directory -ErrorAction SilentlyContinue |
+        Where-Object { $_.Name -match 'antigravity|windsurf|trae|cursor|vscodium|code' } |
+        ForEach-Object {
+            $cand = Join-Path $_.FullName 'User\settings.json'
+            $candDir = Split-Path -Parent $cand
+            if ((Test-Path -LiteralPath $candDir) -and -not ($targets | Where-Object { $_.path -eq $cand })) {
+                $targets += @{ name = $_.Name; path = $cand }
+            }
+        }
+}
 $written = 0
 foreach ($t in $targets) {
     $p = [string]$t.path

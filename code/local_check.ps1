@@ -126,8 +126,11 @@ if (Test-Path -LiteralPath $targetFile) {
     $sshTarget = (Get-Content -LiteralPath $targetFile -Raw).Trim()
     if ($sshTarget) {
         Write-Output ('[..] writing the terminal profile for ' + $sshTarget)
-        & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'setup_terminal.ps1') -Target $sshTarget -NoKey 2>&1 |
-            Out-String | Write-Output
+        # in-process on purpose: a child powershell running console-less gave
+        # back zero output in round 11
+        & (Join-Path $PSScriptRoot 'setup_terminal.ps1') -Target $sshTarget -NoKey 2>&1 |
+            ForEach-Object { Write-Output ('   ' + $_) }
+        Write-Output ('   setup_terminal exit: ' + $LASTEXITCODE)
         $vsSettings = Join-Path $env:APPDATA 'Code\User\settings.json'
         $okProfile = $false
         if (Test-Path -LiteralPath $vsSettings) {
