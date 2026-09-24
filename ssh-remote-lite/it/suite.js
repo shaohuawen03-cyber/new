@@ -84,7 +84,7 @@ function writePrivateKey(dir, contents) {
           .toString();
         const m = /S-1-[0-9-]+/.exec(who);
         if (m) {
-          principal = m[0];
+          principal = `*${m[0]}`;
         }
       } catch (e) {
         /* keep the name */

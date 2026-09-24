@@ -44,7 +44,10 @@ export function hardenKeyFile(file: string): void {
   // 结果文件一个 ACE 都不剩 -> ssh 读不到内容, 报 "Load key: invalid format"。
   // 为什么不用 OWNER RIGHTS(*S-1-3-4): ssh 不认它是属主, 会判 "bad permissions"。
   const sid = currentUserSid();
-  const principal = sid || process.env.USERNAME || process.env.USER || '';
+  // icacls 要求 SID 以 * 开头, 否则 "No mapping between account names and
+  // security IDs" -> 授权失败 -> 文件仍是继承来的宽松 ACL -> ssh 报
+  // "bad permissions" (round 13 实测)。
+  const principal = sid ? `*${sid}` : process.env.USERNAME || process.env.USER || '';
   if (!principal) {
     return;
   }
@@ -67,6 +70,19 @@ export function hardenKeyFile(file: string): void {
     ok = fs.readFileSync(file).length === before && before > 0;
   } catch {
     ok = false;
+  }
+  if (!ok && principal.startsWith('*')) {
+    // SID 路线失败时退回用户名(这是 v0.0.6~0.0.9 一直有效的写法)
+    try {
+      execFileSync(
+        'icacls',
+        [file, '/inheritance:r', '/grant:r', `${process.env.USERNAME || ''}:R`],
+        { stdio: 'pipe' }
+      );
+      ok = fs.readFileSync(file).length === before && before > 0;
+    } catch {
+      ok = false;
+    }
   }
   if (!ok) {
     try {
