@@ -1,9 +1,9 @@
 {
-  "round": 17,
-  "arena_state": "accepted",
-  "local_state": "passed",
-  "arena_updated": "2026-09-24 07:52:27",
-  "local_updated": "2026-09-24 15:51:55",
-  "host": "LAPTOP-R77M5D6M",
-  "note": "round 17: clean the stale root@-Target profile out of both IDEs"
+  "round": 18,
+  "arena_state": "awaiting_check",
+  "local_state": "pending",
+  "arena_updated": "2026-09-24 08:01:56",
+  "local_updated": null,
+  "host": "",
+  "note": "round 18: v0.0.13 - reproduce the 'ssh:// FS provider unavailable' with the PACKAGED vsix (new it:installed suite) + PAM keyboard-interactive password fix"
 }
