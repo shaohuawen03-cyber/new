@@ -1,9 +1,9 @@
 {
-    "round":  2,
-    "arena_state":  "awaiting_check",
-    "local_state":  "failed",
-    "arena_updated":  "2026-09-24 02:22:31",
-    "local_updated":  "2026-09-24 10:24:58",
-    "host":  "LAPTOP-R77M5D6M",
-    "note":  "round 2: gate no longer scans .vscode-test; it/suite.js exports run(); local_check parses package.json as UTF-8"
+  "round": 3,
+  "arena_state": "awaiting_check",
+  "local_state": "pending",
+  "arena_updated": "2026-09-24 02:26:54",
+  "local_updated": null,
+  "host": "",
+  "note": "round 3: ssh probe with -v to expose the exit-255 reason + key ACL lockdown"
 }
