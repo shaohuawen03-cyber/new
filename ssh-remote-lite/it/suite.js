@@ -43,23 +43,47 @@ async function withCase(name, fn) {
 // ("UNPROTECTED PRIVATE KEY FILE" -> exit 255). Node's mode 0o600 does not
 // touch Windows ACLs, so do it with icacls. Also keep the key on an ASCII
 // path inside the repo: %TEMP% sits under a CJK user name on this machine.
-function writePrivateKey(dir, name, contents) {
-  fs.mkdirSync(dir, { recursive: true });
-  const file = path.join(dir, name);
-  fs.writeFileSync(file, contents, { mode: 0o600 });
-  if (process.platform === 'win32') {
+function writePrivateKey(dir, contents) {
+  {
     const me = process.env.USERNAME || process.env.USER || '';
+    fs.mkdirSync(dir, { recursive: true });
+    // Keys from earlier runs are ACL'd read-only, so overwriting one fails
+    // with "EPERM: operation not permitted" (round 4). Give them back write
+    // access, delete them, and use a fresh unique name anyway.
     try {
-      cp.execFileSync('icacls', [file, '/inheritance:r'], { stdio: 'pipe' });
-      if (me) {
-        cp.execFileSync('icacls', [file, '/grant:r', `${me}:R`], { stdio: 'pipe' });
+      for (const f of fs.readdirSync(dir)) {
+        const old = path.join(dir, f);
+        if (process.platform === 'win32' && me) {
+          try {
+            cp.execFileSync('icacls', [old, '/grant', `${me}:F`], { stdio: 'pipe' });
+          } catch (e) {
+            /* ignore */
+          }
+        }
+        try {
+          fs.rmSync(old, { force: true });
+        } catch (e) {
+          /* ignore */
+        }
       }
-      log(`key ACL locked down for ${me}`);
     } catch (e) {
-      log(`icacls failed (continuing): ${e.message}`);
+      /* ignore */
     }
+    const file = path.join(dir, `it_key_${process.pid}_${Date.now()}`);
+    fs.writeFileSync(file, contents, { mode: 0o600 });
+    if (process.platform === 'win32') {
+      try {
+        cp.execFileSync('icacls', [file, '/inheritance:r'], { stdio: 'pipe' });
+        if (me) {
+          cp.execFileSync('icacls', [file, '/grant:r', `${me}:R`], { stdio: 'pipe' });
+        }
+        log(`key ACL locked down for ${me}`);
+      } catch (e) {
+        log(`icacls failed (continuing): ${e.message}`);
+      }
+    }
+    return file;
   }
-  return file;
 }
 
 // NB: this MUST be async. The test SSH server runs inside THIS process (the
@@ -113,11 +137,7 @@ async function run() {
 
   const kp = utils.generateKeyPairSync('ed25519');
   const server = await harness.startTestServer('testuser', 'testpass', kp.public);
-  const keyFile = writePrivateKey(
-    path.join(__dirname, '..', '.vscode-test', 'it'),
-    'it_key',
-    kp.private
-  );
+  const keyFile = writePrivateKey(path.join(__dirname, '..', '.vscode-test', 'it'), kp.private);
   log(`test ssh server on 127.0.0.1:${server.port}, key ${keyFile}`);
 
   const cfg = {
