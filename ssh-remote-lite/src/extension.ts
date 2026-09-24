@@ -4,6 +4,8 @@ import * as os from 'os';
 import * as path from 'path';
 import { SshFileSystemProvider } from './fs';
 import { sshTerminalOptions, openSshTerminal } from './terminal';
+import { PROFILE_ID, PROFILE_TITLE } from './profile';
+import { ensurePasswordlessLogin } from './autologin';
 import {
   getConfigForAuthority,
   getConnection,
@@ -11,6 +13,25 @@ import {
   HostConfig,
 } from './ssh';
 import { execCommand, buildAuthorizeKeyCommand } from './core';
+
+/** 终端 profile / 命令用的主机: ssh:// 工作区 > sshRemoteLite.defaultHost > hosts[0] */
+export function resolveTargetConfig(): HostConfig | undefined {
+  const wsFolder = vscode.workspace.workspaceFolders?.[0];
+  if (wsFolder && wsFolder.uri.scheme === 'ssh') {
+    return getConfigForAuthority(wsFolder.uri.authority);
+  }
+  const conf = vscode.workspace.getConfiguration('sshRemoteLite');
+  const def = conf.get<string>('defaultHost', '');
+  if (def) {
+    return getConfigForAuthority(def);
+  }
+  const hosts = conf.get<HostConfig[]>('hosts', []) || [];
+  if (hosts.length > 0) {
+    const h = hosts[0];
+    return getConfigForAuthority(`${h.username ?? 'root'}@${h.host}:${h.port ?? 22}`);
+  }
+  return undefined;
+}
 
 /** 当前工作区如果是 ssh://, 返回其完整主机配置 */
 function currentSshConfig(): HostConfig | undefined {
@@ -32,13 +53,17 @@ export function activate(context: vscode.ExtensionContext): void {
 
   // 注册终端 Profile: 终端面板 "+" 旁边的下拉菜单里会出现 "SSH: user@host:port"
   context.subscriptions.push(
-    vscode.window.registerTerminalProfileProvider('sshRemoteLite.terminal', {
-      provideTerminalProfile(): vscode.TerminalProfile {
-        const cfg = currentSshConfig();
+    vscode.window.registerTerminalProfileProvider(PROFILE_ID, {
+      async provideTerminalProfile(): Promise<vscode.TerminalProfile> {
+        const cfg = resolveTargetConfig();
         if (!cfg) {
-          throw new Error('当前工作区不是 ssh:// 远程工作区,无法创建 SSH 终端');
+          throw new Error(
+            '还没有配置远程主机: 运行命令 "SSH Remote Lite: 一键配置远程主机" 或设置 sshRemoteLite.defaultHost'
+          );
         }
-        return new vscode.TerminalProfile(sshTerminalOptions(cfg));
+        // 有密码没私钥时先自动部署免密, 这样 profile 终端一进去就是远端 shell
+        const res = await ensurePasswordlessLogin(cfg);
+        return new vscode.TerminalProfile(sshTerminalOptions(res.cfg));
       },
     })
   );
@@ -75,7 +100,8 @@ export function activate(context: vscode.ExtensionContext): void {
         }
         cfg = getConfigForAuthority(input);
       }
-      await openSshTerminal(cfg);
+      const res = await ensurePasswordlessLogin(cfg);
+      await openSshTerminal(res.cfg);
     })
   );
 
@@ -92,6 +118,80 @@ export function activate(context: vscode.ExtensionContext): void {
       'sshRemoteLite._openTestTerminal',
       async (cfg: HostConfig) => openSshTerminal(cfg)
     )
+  );
+
+  // 一键配置远程主机: 存主机+密码 -> 自动部署免密 -> 设为默认终端 -> 开终端
+  context.subscriptions.push(
+    vscode.commands.registerCommand('sshRemoteLite.quickSetup', async () => {
+      const conf = vscode.workspace.getConfiguration('sshRemoteLite');
+      const hosts = (conf.get<HostConfig[]>('hosts', []) || []).slice();
+      const prev = hosts[0];
+      const target = await vscode.window.showInputBox({
+        prompt: '远程主机 user@host[:port]',
+        value: prev ? `${prev.username ?? 'root'}@${prev.host}:${prev.port ?? 22}` : '',
+        placeHolder: '25wenshaohua@10.10.5.210:22',
+        ignoreFocusOut: true,
+      });
+      if (!target) {
+        return;
+      }
+      const parsed = getConfigForAuthority(target);
+      const password = await vscode.window.showInputBox({
+        prompt: `输入 ${parsed.username}@${parsed.host} 的密码(只需这一次, 之后自动免密)`,
+        password: true,
+        value: prev && prev.host === parsed.host ? prev.password ?? '' : '',
+        ignoreFocusOut: true,
+      });
+      if (password === undefined) {
+        return;
+      }
+      const entry: HostConfig = {
+        host: parsed.host,
+        port: parsed.port ?? 22,
+        username: parsed.username ?? 'root',
+        password: password || undefined,
+      };
+      const rest = hosts.filter(
+        (h) => !(h.host === entry.host && (h.port ?? 22) === (entry.port ?? 22))
+      );
+      await conf.update('hosts', [entry, ...rest], vscode.ConfigurationTarget.Global);
+      await conf.update('defaultHost', makeAuthority(entry), vscode.ConfigurationTarget.Global);
+
+      const res = await vscode.window.withProgress(
+        { location: vscode.ProgressLocation.Notification, title: '正在配置免密登录 ...' },
+        () => ensurePasswordlessLogin(entry)
+      );
+      if (res.deployed) {
+        // 公钥已在远端: 把私钥路径也存下来, 以后连密码都不需要读
+        const saved: HostConfig = { ...entry, privateKeyPath: res.keyPath };
+        await conf.update('hosts', [saved, ...rest], vscode.ConfigurationTarget.Global);
+        vscode.window.showInformationMessage(
+          `免密登录已配置好: ${makeAuthority(entry)} (公钥已写入远端 authorized_keys)`
+        );
+      } else {
+        vscode.window.showWarningMessage(
+          `免密部署未成功(${res.error ?? '未知原因'}) - 终端会自动替你输入密码`
+        );
+      }
+      await vscode.commands.executeCommand('sshRemoteLite.setDefaultTerminal');
+      await openSshTerminal(res.cfg);
+    })
+  );
+
+  // 隐藏命令(集成测试用): 只做"密码->免密"这一步, 返回结果
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      'sshRemoteLite._autoLogin',
+      async (cfg: HostConfig, sshDir?: string) => ensurePasswordlessLogin(cfg, sshDir)
+    )
+  );
+
+  // 隐藏命令(集成测试用): 终端 profile 真正会用的命令行
+  context.subscriptions.push(
+    vscode.commands.registerCommand('sshRemoteLite._profileOptions', () => {
+      const cfg = resolveTargetConfig();
+      return cfg ? sshTerminalOptions(cfg) : undefined;
+    })
   );
 
   // 一键部署免密登录: 把本机公钥写入远端 authorized_keys(走插件 SSH 通道, 密码在弹窗输入)
@@ -136,12 +236,17 @@ export function activate(context: vscode.ExtensionContext): void {
   // 一键把当前 ssh:// 主机设为默认终端: Agent/反重力 的 shell 命令将跑在远端
   context.subscriptions.push(
     vscode.commands.registerCommand('sshRemoteLite.setDefaultTerminal', async () => {
-      const cfg = currentSshConfig();
+      const cfg = resolveTargetConfig();
       if (!cfg) {
-        vscode.window.showWarningMessage('请先打开 ssh:// 远程工作区再执行此命令');
+        vscode.window.showWarningMessage(
+          '还没有远程主机: 先运行 "SSH Remote Lite: 一键配置远程主机"'
+        );
         return;
       }
-      const name = `SSH: ${makeAuthority(cfg)}`;
+      // 必须是 package.json 里 contributes.terminal.profiles 的 title,
+      // 写成 "SSH: user@host" 这种名字 VS Code 找不到 profile, 于是继续用
+      // PowerShell —— 这正是 v0.0.6 "终端还是 Windows 的" 的原因。
+      const name = PROFILE_TITLE;
       const key =
         process.platform === 'win32'
           ? 'windows'
@@ -152,7 +257,7 @@ export function activate(context: vscode.ExtensionContext): void {
         .getConfiguration('terminal.integrated')
         .update(`defaultProfile.${key}`, name, vscode.ConfigurationTarget.Global);
       vscode.window.showInformationMessage(
-        `默认终端已设为 ${name},Agent 的命令将发送到远端服务器`
+        `默认终端已设为 "${name}" (${makeAuthority(cfg)}),新建终端/Agent 命令都会跑在远端`
       );
     })
   );

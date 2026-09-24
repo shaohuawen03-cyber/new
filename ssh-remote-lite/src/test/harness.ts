@@ -256,6 +256,13 @@ export function startTestServer(
 ): Promise<TestServer> {
   const keys = utils.generateKeyPairSync('ed25519');
   const mem = new MemFs();
+  // 远端 authorized_keys 的内存版: 初始值 = 传进来的公钥, 之后
+  // buildAuthorizeKeyCommand 通过 exec 写进来的公钥也会被真正接受,
+  // 这样"密码登录 -> 部署公钥 -> 免密开终端"整条链路才能被测到。
+  const authorizedKeys: string[] = [];
+  if (authorizedPubKey) {
+    authorizedKeys.push(authorizedPubKey.trim());
+  }
 
   const server = new Server({ hostKeys: [keys.private] }, (client) => {
     client.on('authentication', (ctx) => {
@@ -263,33 +270,37 @@ export function startTestServer(
         if (ctx.method === 'password' && ctx.username === user && ctx.password === password) {
           return ctx.accept();
         }
-        if (ctx.method === 'publickey' && authorizedPubKey && ctx.username === user) {
+        if (ctx.method === 'publickey' && authorizedKeys.length > 0 && ctx.username === user) {
           // ctx.key is { algo, data, comment } - NOT a Buffer. Calling
           // .equals() on it threw inside the event handler, which ssh2 turns
           // into an abrupt "Connection closed by <host>" and a client exit
           // 255 (field report 2026-09-24, integration round 5).
-          const parsed = utils.parseKey(authorizedPubKey);
-          if (parsed && !(parsed instanceof Error)) {
+          for (const entry of authorizedKeys) {
+            const parsed = utils.parseKey(entry);
+            if (!parsed || parsed instanceof Error) {
+              continue;
+            }
             const allowed = Array.isArray(parsed) ? parsed[0] : parsed;
             const pubBuf: Buffer = (allowed as any).getPublicSSH();
             const offered: Buffer = (ctx.key as any).data;
             if (
-              pubBuf &&
-              offered &&
-              (ctx.key as any).algo === (allowed as any).type &&
-              Buffer.compare(pubBuf, offered) === 0
+              !pubBuf ||
+              !offered ||
+              (ctx.key as any).algo !== (allowed as any).type ||
+              Buffer.compare(pubBuf, offered) !== 0
             ) {
-              // no signature yet = the "may I offer this key?" query phase
-              if (!(ctx as any).signature) {
-                return ctx.accept();
-              }
-              // NB: two arguments only. Passing the algo ('ssh-ed25519') as
-              // the third one makes node throw
-              // "Invalid digest: ssh-ed25519" (ERR_CRYPTO_INVALID_DIGEST).
-              const ok = (allowed as any).verify((ctx as any).blob, (ctx as any).signature);
-              if (ok === true) {
-                return ctx.accept();
-              }
+              continue;
+            }
+            // no signature yet = the "may I offer this key?" query phase
+            if (!(ctx as any).signature) {
+              return ctx.accept();
+            }
+            // NB: two arguments only. Passing the algo ('ssh-ed25519') as
+            // the third one makes node throw
+            // "Invalid digest: ssh-ed25519" (ERR_CRYPTO_INVALID_DIGEST).
+            const ok = (allowed as any).verify((ctx as any).blob, (ctx as any).signature);
+            if (ok === true) {
+              return ctx.accept();
             }
           }
         }
@@ -321,6 +332,18 @@ export function startTestServer(
         });
         session.on('exec', (acceptExec, _rejectExec, info) => {
           const stream = acceptExec();
+          // buildAuthorizeKeyCommand: ... echo <base64> | base64 -d >> ~/.ssh/authorized_keys ...
+          const m = /echo\s+([A-Za-z0-9+/=]+)\s*\|\s*base64\s+-d/.exec(info.command);
+          if (m) {
+            try {
+              const added = Buffer.from(m[1], 'base64').toString('utf8').trim();
+              if (added) {
+                authorizedKeys.push(added);
+              }
+            } catch {
+              /* ignore */
+            }
+          }
           stream.write(`EXEC:${info.command}\n`);
           stream.exit(0);
           stream.close();

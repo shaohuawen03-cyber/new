@@ -18,6 +18,7 @@
 const assert = require('assert');
 const cp = require('child_process');
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const vscode = require('vscode');
 
@@ -192,6 +193,69 @@ async function run() {
         undefined,
         `SSH terminal exited early: ${JSON.stringify(term.exitStatus)}`
       );
+    });
+
+    await withCase('the SSH terminal profile is contributed and becomes the default', async () => {
+      const conf = vscode.workspace.getConfiguration('sshRemoteLite');
+      await conf.update(
+        'defaultHost',
+        `testuser@127.0.0.1:${server.port}`,
+        vscode.ConfigurationTarget.Global
+      );
+      const opts = await vscode.commands.executeCommand('sshRemoteLite._profileOptions');
+      assert.ok(opts, 'the profile provider has no host to use');
+      assert.ok(
+        opts.shellArgs.join(' ').includes(String(server.port)),
+        `profile args do not target the test server: ${JSON.stringify(opts.shellArgs)}`
+      );
+      await vscode.commands.executeCommand('sshRemoteLite.setDefaultTerminal');
+      const key =
+        process.platform === 'win32' ? 'windows' : process.platform === 'darwin' ? 'osx' : 'linux';
+      const def = vscode.workspace
+        .getConfiguration('terminal.integrated')
+        .get(`defaultProfile.${key}`);
+      assert.strictEqual(
+        def,
+        'SSH Remote Lite',
+        `default terminal profile is "${def}" - new terminals would still be the local shell`
+      );
+    });
+
+    await withCase('a password-only host is turned passwordless and its terminal stays alive', async () => {
+      // second server: it knows NOTHING about our key, only the password
+      const pwServer = await harness.startTestServer('testuser', 'testpass');
+      const sshDir = fs.mkdtempSync(path.join(os.tmpdir(), 'srl-it-'));
+      let pwTerm;
+      try {
+        const res = await vscode.commands.executeCommand(
+          'sshRemoteLite._autoLogin',
+          { host: '127.0.0.1', port: pwServer.port, username: 'testuser', password: 'testpass' },
+          sshDir
+        );
+        assert.ok(res && res.deployed, `key deployment failed: ${res && res.error}`);
+        assert.ok(res.cfg.privateKeyPath, 'no private key path came back');
+        pwTerm = await vscode.commands.executeCommand('sshRemoteLite._openTestTerminal', res.cfg);
+        await new Promise((r) => setTimeout(r, 5000));
+        assert.strictEqual(
+          pwTerm.exitStatus,
+          undefined,
+          `passwordless terminal exited early: ${JSON.stringify(pwTerm.exitStatus)}`
+        );
+      } finally {
+        try {
+          if (pwTerm) {
+            pwTerm.dispose();
+          }
+        } catch (e) {
+          /* ignore */
+        }
+        await pwServer.close();
+        try {
+          fs.rmSync(sshDir, { recursive: true, force: true });
+        } catch (e) {
+          /* ignore */
+        }
+      }
     });
 
     log('all integration cases passed');

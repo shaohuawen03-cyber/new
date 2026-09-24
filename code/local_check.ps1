@@ -68,8 +68,13 @@ if ($codeCmd -and $vsix) {
         if ($pkgText -match '"publisher"\s*:\s*"([^"]+)"') { $extId = $Matches[1] }
         if ($pkgText -match '"name"\s*:\s*"([^"]+)"') { $extId = $extId + '.' + $Matches[1] }
     }
-    $list = & $codeCmd --list-extensions 2>&1 | Out-String
+    $list = & $codeCmd --list-extensions --show-versions 2>&1 | Out-String
     Mark ($extId -and $list -like "*$extId*") ('extension listed in VS Code - ' + $extId)
+    # the installed VSIX must be the one in the repo (an old copy staying behind
+    # is exactly how "the fix is not there" happens)
+    $want = ''
+    if ($vsix.Name -match '-(\d+\.\d+\.\d+)\.vsix$') { $want = $Matches[1] }
+    Mark ($want -and $list -like "*$extId@$want*") ('installed version matches the repo vsix - ' + $want)
 } else {
     Mark $false 'vsix install' 'missing code CLI or vsix file'
 }
@@ -83,7 +88,7 @@ if ($nodeCmd) {
         npm install --no-audit --no-fund 2>&1 | Out-String | Write-Output
     }
     npm test 2>&1 | Out-String | Write-Output
-    Mark ($LASTEXITCODE -eq 0) 'npm test (unit + ssh e2e + ssh CLI, 15 cases)'
+    Mark ($LASTEXITCODE -eq 0) 'npm test (unit + ssh e2e + ssh CLI + autologin/manifest, 22 cases)'
     npm run it 2>&1 | Out-String | Write-Output
     Mark ($LASTEXITCODE -eq 0) 'npm run it (real VS Code activates ext + SSH terminal opens and stays alive)'
     Pop-Location
