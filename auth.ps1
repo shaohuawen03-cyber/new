@@ -41,6 +41,9 @@
 #     .\auth.ps1 -Account <login>     # pin THIS clone to one gh account; other
 #                                     #   clones keep the machine default
 #     .\auth.ps1 -Unpin               # drop the pin (machine default again)
+#     .\auth.ps1 -AutoFix             # headless repair: find the gh login that
+#                                     #   can write here and pin this clone to
+#                                     #   it (what the watcher calls on a 403)
 #   A 403 during -Setup / -Verify is now REPAIRED AUTOMATICALLY: if any gh
 #   login on this machine can write to the repo, this clone is pinned to it
 #   and the push probe runs again (-NoAutoFix turns that off).
@@ -69,6 +72,7 @@ param(
     [string]$Account = '',
     [switch]$Unpin,
     [switch]$NoAutoFix,
+    [switch]$AutoFix,
     [string]$Config = '',
     [string]$Remote = ''
 )
@@ -594,6 +598,47 @@ if ($GhLogin) {
     # fall through: the verify block below runs when -Verify is also given
     $Setup = $true
     $probe = Invoke-CredProbe ''
+}
+
+# ------------------------------------------------------------------ auto-fix
+# Headless repair of the "one machine, several logins" 403. The watcher runs
+# this by itself when a push is denied: it can never click anything, so the
+# only way the loop keeps running hands-free is for the pin to happen here.
+if ($AutoFix) {
+    Say '== auth.ps1 -AutoFix : repairing a wrong-account push (no window, no input)' 'Cyan'
+    if ($scheme -ne 'https') {
+        Note "the remote is not https ($scheme) - nothing to pin"
+        exit 1
+    }
+    if (-not $ghVer) {
+        Bad 'gh is not installed - cannot tell which login owns the repo'
+        Note 'store a PAT instead:  .\auth.ps1 -Setup -PromptToken'
+        exit 1
+    }
+    $acc = Find-PushAccount
+    if (-not $acc) {
+        Bad 'no gh login on this machine can write to this repo'
+        Note 'log in with the owner account once:  gh auth login'
+        Show-Accounts
+        exit 1
+    }
+    $already = Get-PinnedAccount
+    if ($already -eq $acc) {
+        Note "this clone is already pinned to '$acc' - the 403 has another cause"
+        exit 1
+    }
+    if (-not (Set-AccountPin $acc)) { exit 1 }
+    $r = GitG @('push', '--dry-run', $Remote, ("refs/remotes/$Remote/$Branch" + ':' + "refs/heads/$Branch-git-sync-probe"))
+    if ($r.code -eq 0) {
+        Ok "push works now as '$acc' (this clone only)"
+        exit 0
+    }
+    if ($r.text -match 'non-fast-forward|failed to push some refs|\[rejected\]|stale info') {
+        Ok "auth works now as '$acc' (the probe ref was simply not a fast-forward)"
+        exit 0
+    }
+    Bad ("pinned to '$acc' but the push probe still fails - " + (Brief $r.text 2))
+    exit 1
 }
 
 # ------------------------------------------------------- per-clone account pin

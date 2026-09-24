@@ -1346,6 +1346,33 @@ function Get-DirtyPaths {
     return $out
 }
 
+function Invoke-AuthAutoFix {
+    # "403 ... Permission to OWNER/REPO denied to OTHER-USER" is NOT a missing
+    # credential: the machine default gh login simply cannot write here. The
+    # watcher can never click anything, so it repairs that itself by pinning
+    # this clone to the login that owns the repo (auth.ps1 -AutoFix, local
+    # config only - other clones keep the machine default).
+    if ($script:AuthFixDone) { return $false }
+    $script:AuthFixDone = $true
+    $auth = Join-Path $repo 'auth.ps1'
+    if (-not (Test-Path -LiteralPath $auth)) { $auth = Join-Path $PSScriptRoot 'auth.ps1' }
+    if (-not (Test-Path -LiteralPath $auth)) { Add-Log 'auth auto-fix: auth.ps1 missing (upgrade the skill)'; return $false }
+    Add-Log 'auth auto-fix: running auth.ps1 -AutoFix (wrong gh account for this repo?)'
+    Write-Host '[AUTH] trying to repair the push account automatically ...' -ForegroundColor Yellow
+    $global:LASTEXITCODE = 0
+    $out = (& $auth -AutoFix 2>&1 | Out-String)
+    $code = $LASTEXITCODE
+    foreach ($ln in @($out -split "`r?`n" | Where-Object { $_ -match '\S' } | Select-Object -Last 6)) { Add-Log ('   ' + $ln) }
+    if ($out.TrimEnd()) { Write-Host $out.TrimEnd() }
+    if ($code -eq 0) {
+        Add-Log 'auth auto-fix: repaired - retrying the push'
+        Set-State @{ last_auth_fix = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss') }
+        return $true
+    }
+    Add-Log "auth auto-fix: could not repair (exit $code) - a human login is needed once"
+    return $false
+}
+
 function Invoke-AutoPull {
     if (-not $AutoPull) { return 0 }
     $sync = Join-Path $repo 'sync.ps1'
@@ -1396,6 +1423,19 @@ function Invoke-AutoPush {
         Set-State @{ last_auto_push = 'ok'; last_auto_push_msg = $msg; last_auto_push_at = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss'); last_auto_push_files = $dirty.Count }
         return 0
     }
+    if ($code -eq 4 -or $out -match '403|denied to|Permission to') {
+        if (Invoke-AuthAutoFix) {
+            $global:LASTEXITCODE = 0
+            $out = (& $push -NoPrompt $msg 2>&1 | Out-String)
+            $code = $LASTEXITCODE
+            if ($out.TrimEnd()) { Write-Host $out.TrimEnd() }
+            if ($code -eq 0) {
+                Add-Log ('auto_push: ok after the auth auto-fix (' + $msg + ')')
+                Set-State @{ last_auto_push = 'ok'; last_auto_push_msg = $msg; last_auto_push_at = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss'); last_auto_push_files = $dirty.Count }
+                return 0
+            }
+        }
+    }
     if ($code -eq 4) {
         Add-Log 'auto_push: BLOCKED by auth - run .\\auth.ps1 -Setup'
         Set-State @{ last_auto_push = 'auth blocked'; last_push = 'auth: no silent credential' }
@@ -1415,6 +1455,7 @@ function Invoke-PollRound {
     # look frozen on its last line). code/check_loop_summary.* enforces this.
     $script:PollSummary = ''
     try {
+        $script:AuthFixDone = $false
         Set-State @{ last_run = $pollStart.ToString('yyyy-MM-dd HH:mm:ss'); last_action = 'poll'; host = $env:COMPUTERNAME; pid = $PID }
         Add-Log "poll start (pid $PID)"
 
@@ -1639,6 +1680,11 @@ function Invoke-PollRound {
             $pushDetail = (($pushOut -split "`r?`n" | Where-Object { $_ -match '\S' } | Select-Object -Last 4) -join ' / ')
             if ($pushOut) { Write-Host $pushOut }
             if ($pushCode -eq 0) { $pushed = $true; break }
+            if ($pushCode -eq 4 -or $pushOut -match '403|denied to|Permission to') {
+                # repairable without a human: pin this clone to the account
+                # that owns the repo, then let the loop retry immediately
+                if (Invoke-AuthAutoFix) { continue }
+            }
             if ($pushCode -eq 4) {
                 $pushNote = 'auth: no silent credential (run auth.ps1 -Setup)'
                 Add-Log "round ${round}: push BLOCKED by auth - run .\auth.ps1 -Setup"
@@ -1766,6 +1812,15 @@ if ($Loop) {
         Write-Host "   * Ctrl+C here stops this loop:  .\watch.ps1 -Pause  /  -Resume" -ForegroundColor Gray
         Write-Host ""
     }
+    # remember what this process is RUNNING: auto_pull can replace watch.ps1
+    # with a newer skill while the loop lives on with the old code in memory
+    # (that is why every fix used to need a manual re-register). After each
+    # poll the stamp is compared and the loop restarts itself when it changed.
+    $selfStamp = ''
+    try {
+        $fi = Get-Item -LiteralPath $PSCommandPath -ErrorAction Stop
+        $selfStamp = ('{0}|{1}' -f $fi.Length, $fi.LastWriteTimeUtc.Ticks)
+    } catch { }
     try {
         while ($true) {
             $script:PollSummary = ''
@@ -1773,6 +1828,31 @@ if ($Loop) {
             # 1) what this tick concluded, 2) when the next one is - always
             #    both, to the console (when there is one) and to the host log
             Show-PollSummary $attached
+            # self-upgrade: a newer watch.ps1 arrived through auto_pull
+            if ($selfStamp) {
+                $nowStamp = ''
+                try {
+                    $fi2 = Get-Item -LiteralPath $PSCommandPath -ErrorAction Stop
+                    $nowStamp = ('{0}|{1}' -f $fi2.Length, $fi2.LastWriteTimeUtc.Ticks)
+                } catch { }
+                if ($nowStamp -and $nowStamp -ne $selfStamp) {
+                    Add-Log 'loop: watch.ps1 was upgraded - restarting the loop with the new code'
+                    if ($attached) { Write-Host '== watch.ps1 was upgraded - restarting the loop with the new code' -ForegroundColor Cyan }
+                    try {
+                        $psExe2 = Get-PowerShellExe
+                        Remove-Item -LiteralPath $loopFile -Force -ErrorAction SilentlyContinue
+                        $env:GIT_SYNC_WATCH_DETACHED = '1'
+                        $null = Start-Process -FilePath $psExe2 -WindowStyle Hidden -ArgumentList @(
+                            '-NoProfile', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden',
+                            '-File', $PSCommandPath, '-Loop', '-Interval', $Interval, '-KeeperMin', $KeeperMin)
+                        Start-Sleep -Seconds 2
+                        exit 0
+                    } catch {
+                        Add-Log "loop: self-upgrade restart failed ($($_.Exception.Message)) - keeping the old code"
+                        $selfStamp = $nowStamp
+                    }
+                }
+            }
             $next = (Get-Date).AddSeconds($Interval * 60)
             $line = "== next poll at {0} (Ctrl+C stops this loop)" -f $next.ToString('HH:mm:ss')
             if ($attached) { Write-Host $line -ForegroundColor DarkGray }
