@@ -10,12 +10,30 @@
 // 现在这两条都在 npm test 里被守住。
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { spawn } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { utils } from 'ssh2';
 import { startTestServer, TestServer } from './harness';
+
+// Windows OpenSSH refuses a private key that other accounts can read:
+//   Load key "...": bad permissions   -> Permission denied -> exit 255
+// node 的 mode 0o600 不动 Windows ACL,所以用 icacls 收紧(第 6 轮实测)。
+function lockDownKey(file: string): void {
+  if (process.platform !== 'win32') {
+    return;
+  }
+  const me = process.env.USERNAME || process.env.USER || '';
+  try {
+    execFileSync('icacls', [file, '/inheritance:r'], { stdio: 'pipe' });
+    if (me) {
+      execFileSync('icacls', [file, '/grant:r', `${me}:R`], { stdio: 'pipe' });
+    }
+  } catch {
+    /* ignore - the assertion below will report the real ssh error */
+  }
+}
 
 let srv: TestServer;
 let keyFile: string;
@@ -25,10 +43,20 @@ before(async () => {
   srv = await startTestServer('testuser', 'testpass', kp.public);
   keyFile = path.join(os.tmpdir(), `ssh_remote_lite_cli_${process.pid}_${Date.now()}`);
   fs.writeFileSync(keyFile, kp.private, { mode: 0o600 });
+  lockDownKey(keyFile);
 });
 
 after(async () => {
   try {
+    if (process.platform === 'win32' && (process.env.USERNAME || process.env.USER)) {
+      try {
+        execFileSync('icacls', [keyFile, '/grant', `${process.env.USERNAME || process.env.USER}:F`], {
+          stdio: 'pipe',
+        });
+      } catch {
+        /* ignore */
+      }
+    }
     fs.rmSync(keyFile, { force: true });
   } catch {
     /* ignore */
