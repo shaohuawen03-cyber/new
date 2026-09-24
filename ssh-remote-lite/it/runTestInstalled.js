@@ -29,7 +29,13 @@ const {
     }
     const extDir = fs.mkdtempSync(path.join(os.tmpdir(), 'srl-exts-'));
     const userDir = fs.mkdtempSync(path.join(os.tmpdir(), 'srl-user-'));
-    const exe = await downloadAndUnzipVSCode();
+    // Pin to the VS Code the user actually runs (1.85.2 - the last build that
+    // works with their old server's glibc). The default "latest" hid the
+    // problem: 1.139 activates the extension fine while 1.85.2 is what showed
+    // "file system provider for ssh:// is not available".
+    const version = process.env.SRL_VSCODE_VERSION || '1.85.2';
+    console.log(`[IT-installed] VS Code version under test: ${version}`);
+    const exe = await downloadAndUnzipVSCode(version);
     const [cli, ...cliArgs] = resolveCliArgsFromVSCodeExecutablePath(exe);
     console.log(`[IT-installed] installing ${vsix} into ${extDir}`);
     const installArgs = [
