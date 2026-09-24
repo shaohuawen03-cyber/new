@@ -1,9 +1,9 @@
 {
-    "round":  12,
-    "arena_state":  "awaiting_check",
-    "local_state":  "failed",
-    "arena_updated":  "2026-09-24 07:11:49",
-    "local_updated":  "2026-09-24 15:14:37",
-    "host":  "LAPTOP-R77M5D6M",
-    "note":  "round 12: v0.0.10 + setup_terminal writes the profile in-process (expect it to appear in VS Code settings.json)"
+  "round": 13,
+  "arena_state": "awaiting_check",
+  "local_state": "pending",
+  "arena_updated": "2026-09-24 07:16:07",
+  "local_updated": null,
+  "host": "",
+  "note": "round 13: SID-based key ACL - expect npm test 26/26 and the integration suite green again"
 }
