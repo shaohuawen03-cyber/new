@@ -1,0 +1,226 @@
+check round 5 on LAPTOP-R77M5D6M - failed (exit 1)
+cmd: powershell -NoProfile -ExecutionPolicy Bypass -File code/local_check.ps1
+elapsed: 28s
+
+OK: all .ps1 files are ASCII-only
+OK: sync.config.json branch=arena/01a08f54-new
+OK: sync.config.json branch matches HEAD (arena/01a08f54-new)
+OK: root scripts identical to skills/git-sync/scripts
+OK: no drive-style variable typos ($var:)
+== exits in Invoke-PollRound: 6
+OK: every exit path sets its closing summary
+== exits in Invoke-PollOnce: 2 (lock held / crashed / normal)
+OK: loop closing lines covered (6 exit paths, all with their own summary)
+OK: every .ps1 parses
+[PASS] repo gate (code/check_all.sh)
+[PASS] VS Code CLI found - code
+Installing extensions...
+code.cmd : (node:142656) [DEP0005] DeprecationWarning: Buffer() is deprecated due to security and usability issues. Ple
+ase use the Buffer.alloc(), Buffer.allocUnsafe(), or Buffer.from() methods instead.
+所在位置 E:\0github\new-sync\code\local_check.ps1:55 字符: 5
++     & $codeCmd --install-extension $vsix.FullName --force 2>&1 | Out- ...
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ((node:142656) [...ethods instead.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+(Use `Code --trace-deprecation ...` to show where the warning was created)
+Extension 'ssh-remote-lite-0.0.6.vsix' was successfully installed.
+[PASS] vsix installed - ssh-remote-lite-0.0.6.vsix
+[PASS] extension listed in VS Code - shaohuawen03.ssh-remote-lite
+> ssh-remote-lite@0.0.6 test
+> npm run compile && node --test "out/test/*.test.js"
+> ssh-remote-lite@0.0.6 compile
+> tsc -p .
+TAP version 13
+# Subtest: parseAuthority: user@host:port
+ok 1 - parseAuthority: user@host:port
+  ---
+  duration_ms: 1.0659
+  type: 'test'
+  ...
+# Subtest: parseAuthority: 鐪佺暐绔彛榛樿 22
+ok 2 - parseAuthority: 鐪佺暐绔彛榛樿 22
+  ---
+  duration_ms: 0.1524
+  type: 'test'
+  ...
+# Subtest: parseAuthority: 鐪佺暐鐢ㄦ埛鍚?ok 3 - parseAuthority: 鐪佺暐鐢ㄦ埛鍚?  ---
+  duration_ms: 0.1286
+  type: 'test'
+  ...
+# Subtest: parseAuthority: 闈炴硶绔彛鍥為€€ 22
+ok 4 - parseAuthority: 闈炴硶绔彛鍥為€€ 22
+  ---
+  duration_ms: 0.1902
+  type: 'test'
+  ...
+# Subtest: makeAuthority: 缂虹渷鍊?ok 5 - makeAuthority: 缂虹渷鍊?  ---
+  duration_ms: 0.161
+  type: 'test'
+  ...
+# Subtest: makeAuthority: 鍏ㄩ噺
+ok 6 - makeAuthority: 鍏ㄩ噺
+  ---
+  duration_ms: 0.1181
+  type: 'test'
+  ...
+# Subtest: expandHome: 灞曞紑 ~
+ok 7 - expandHome: 灞曞紑 ~
+  ---
+  duration_ms: 0.2875
+  type: 'test'
+  ...
+# Subtest: 瀵嗙爜璁よ瘉 + SFTP 鍏ㄦ祦绋?(mkdir/鍐?璇?鍒楃洰褰?缁熻/鏀瑰悕/鍒犻櫎)
+ok 8 - 瀵嗙爜璁よ瘉 + SFTP 鍏ㄦ祦绋?(mkdir/鍐?璇?鍒楃洰褰?缁熻/鏀瑰悕/鍒犻櫎)
+  ---
+  duration_ms: 40.813
+  type: 'test'
+  ...
+# Subtest: 璇诲彇涓嶅瓨鍦ㄧ殑鏂囦欢搴旀姤閿?ok 9 - 璇诲彇涓嶅瓨鍦ㄧ殑鏂囦欢搴旀姤閿?  ---
+  duration_ms: 8.2294
+  type: 'test'
+  ...
+# Subtest: 閿欒瀵嗙爜搴旇鎷掔粷
+ok 10 - 閿欒瀵嗙爜搴旇鎷掔粷
+  ---
+  duration_ms: 7.2377
+  type: 'test'
+  ...
+# Subtest: shell 缁堢: 娆㈣繋璇?+ 杈撳叆鍥炴樉
+ok 11 - shell 缁堢: 娆㈣繋璇?+ 杈撳叆鍥炴樉
+  ---
+  duration_ms: 70.6265
+  type: 'test'
+  ...
+# Subtest: execCommand 鍦ㄨ繙绔墽琛屽苟杩斿洖閫€鍑虹爜
+ok 12 - execCommand 鍦ㄨ繙绔墽琛屽苟杩斿洖閫€鍑虹爜
+  ---
+  duration_ms: 10.8205
+  type: 'test'
+  ...
+# Subtest: buildAuthorizeKeyCommand 鐢?base64 浼犺緭鍏挜
+ok 13 - buildAuthorizeKeyCommand 鐢?base64 浼犺緭鍏挜
+  ---
+  duration_ms: 0.3696
+  type: 'test'
+  ...
+1..13
+# tests 13
+# suites 0
+# pass 13
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 328.0819
+[PASS] npm test (unit + ssh e2e, 13 cases)
+> ssh-remote-lite@0.0.6 it
+> node it/runTest.js
+node.exe : - Resolving version...
+所在位置 行:1 字符: 1
++ & "E:\hermes\node/node.exe" "E:\hermes\node/node_modules/npm/bin/npm- ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (- Resolving version...:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+鈭?Validated version: 1.139.0
+鈭?Found existing install in E:\0github\new-sync\ssh-remote-lite\.vscode-test\vscode-win32-x64-archive-1.139.0
+[main 2026-09-24T02:33:25.428Z] StorageMainService: creating application shared storage
+[main 2026-09-24T02:33:25.498Z] [shared storage] Creating shared storage database at ':memory:' (wasCreated: true)
+[main 2026-09-24T02:33:25.498Z] [shared storage] Initializing fallback application storage (path: in-memory)
+[main 2026-09-24T02:33:25.551Z] [shared storage] Fallback application storage initialized with 3 items
+[main 2026-09-24T02:33:25.552Z] update#setState disabled
+[main 2026-09-24T02:33:25.552Z] update#ctor - updates are disabled by the environment
+[RemoteAgentHost] Reconciling: desired=[], current=[]
+[AgentHost:renderer] Acquiring MessagePort to agent host...
+[main 2026-09-24T02:33:26.171Z] AgentHostProcessManager: agent host started
+[ChatModelSelection] event=no-model-at-toolbar-build surface="workbench" sessionKey=undefined conversationKey=undefined modelTarget=undefined storageKey="chat.currentLanguageModel.panel" widgetViewKind="view"
+[AgentHost:renderer] MessagePort acquired, creating client...
+[ChatModelSelection] event=no-model-at-toolbar-build surface="workbench" sessionKey="local" conversationKey="vscode-chat-session://local/MGQ5NjEzZmQtYTM4OS00MmUxLTgxN2ItMjhhOWIzNjAxYzRk" modelTarget=undefined storageKey="chat.currentLanguageModel.panel" widgetViewKind="view"
+Started local extension host with pid 34164.
+Loading development extension at e:\0github\new-sync\ssh-remote-lite
+[main 2026-09-24T02:33:26.855Z] [AgentHost:stderr] (node:141756) [DEP0169] DeprecationWarning: `url.parse()` behavior i
+s not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not is
+sued for `url.parse()` vulnerabilities.
+(Use `Code --trace-deprecation ...` to show where the warning was created)
+[AgentHost:renderer] Protocol connection established; clientId=472f81af-26a5-49b5-aab1-036adb389950
+[AccountPolicyGate] apply: state=inactive, reason=undefined, isRestricted=false
+Unknown channel: agentHostClientByokLm
+Unknown channel: agentHostClientProxy
+[AgentHost] No signed-in session resolved for resource: https://api.github.com
+[AgentHost] No signed-in session resolved for resource: https://api.github.com
+[AgentHost] No signed-in session resolved for resource: https://api.github.com
+Unknown channel: agentHostClientProxy
+[ChatModelSelection] event=no-model-at-toolbar-build surface="workbench" sessionKey="local" conversationKey="vscode-chat-session://local/MGQ5NjEzZmQtYTM4OS00MmUxLTgxN2ItMjhhOWIzNjAxYzRk" modelTarget=undefined storageKey="chat.currentLanguageModel.panel" widgetViewKind="view"
+Settings Sync: Account status changed from uninitialized to unavailable
+[AgentHost] No signed-in session resolved for resource: https://api.github.com/repos
+[AgentHost] No signed-in session resolved for resource: https://api.github.com/repos
+[AgentHost] No signed-in session resolved for resource: https://api.github.com/repos
+[AgentHost] No signed-in session resolved for resource: https://api.github.com
+[AgentHost] No signed-in session resolved for resource: https://api.github.com
+[AgentHost] No signed-in session resolved for resource: https://api.github.com
+[AgentHost] No signed-in session resolved for resource: https://api.github.com/repos
+[AgentHost] No signed-in session resolved for resource: https://api.github.com/repos
+[AgentHost] No signed-in session resolved for resource: https://api.github.com/repos
+[IT] key ACL locked down for 鏂囧皯
+[IT] test ssh server on 127.0.0.1:65373, key e:\0github\new-sync\ssh-remote-lite\.vscode-test\it\it_key_34164_1790217208716
+[IT] ok   - extension is installed and activates (81ms)
+[IT] probe: "C:\Windows\System32\OpenSSH\ssh.exe" -p 65373 -o StrictHostKeyChecking=accept-new -i e:\0github\new-sync\ssh-remote-lite\.vscode-test\it\it_key_34164_1790217208716 testuser@127.0.0.1 -v -o BatchMode=yes -o IdentitiesOnly=yes echo IT_SSH_OK
+[IT] probe err| debug1: Remote protocol version 2.0, remote software version ssh2js1.17.0
+[IT] probe err| debug1: compat_banner: no match: ssh2js1.17.0
+[IT] probe err| debug1: Authenticating to 127.0.0.1:65373 as 'testuser'
+[IT] probe err| debug1: load_hostkeys: fopen C:\\Users\\\346\226\207\345\260\221/.ssh/known_hosts2: No such file or directory
+[IT] probe err| debug1: load_hostkeys: fopen __PROGRAMDATA__\\ssh/ssh_known_hosts: No such file or directory
+[IT] probe err| debug1: load_hostkeys: fopen __PROGRAMDATA__\\ssh/ssh_known_hosts2: No such file or directory
+[IT] probe err| debug1: SSH2_MSG_KEXINIT sent
+[IT] probe err| debug1: SSH2_MSG_KEXINIT received
+[IT] probe err| debug1: kex: algorithm: curve25519-sha256
+[IT] probe err| debug1: kex: host key algorithm: ssh-ed25519
+[IT] probe err| debug1: kex: server->client cipher: aes128-ctr MAC: hmac-sha2-256-etm@openssh.com compression: none
+[IT] probe err| debug1: kex: client->server cipher: aes128-ctr MAC: hmac-sha2-256-etm@openssh.com compression: none
+[IT] probe err| debug1: expecting SSH2_MSG_KEX_ECDH_REPLY
+[IT] probe err| debug1: SSH2_MSG_KEX_ECDH_REPLY received
+[IT] probe err| debug1: Server host key: ssh-ed25519 SHA256:nbK7pyjCXh1syFb1ZExMoBTHf1iedtdbtqyOqrDRAhc
+[IT] probe err| debug1: load_hostkeys: fopen C:\\Users\\\346\226\207\345\260\221/.ssh/known_hosts2: No such file or directory
+[IT] probe err| debug1: load_hostkeys: fopen __PROGRAMDATA__\\ssh/ssh_known_hosts: No such file or directory
+[IT] probe err| debug1: load_hostkeys: fopen __PROGRAMDATA__\\ssh/ssh_known_hosts2: No such file or directory
+[IT] probe err| debug1: checking without port identifier
+[IT] probe err| debug1: load_hostkeys: fopen C:\\Users\\\346\226\207\345\260\221/.ssh/known_hosts2: No such file or directory
+[IT] probe err| debug1: load_hostkeys: fopen __PROGRAMDATA__\\ssh/ssh_known_hosts: No such file or directory
+[IT] probe err| debug1: load_hostkeys: fopen __PROGRAMDATA__\\ssh/ssh_known_hosts2: No such file or directory
+[IT] probe err| Warning: Permanently added '[127.0.0.1]:65373' (ED25519) to the list of known hosts.
+[IT] probe err| debug1: check_host_key: hostkey not known or explicitly trusted: disabling UpdateHostkeys
+[IT] probe err| debug1: ssh_packet_send2_wrapped: resetting send seqnr 3
+[IT] probe err| debug1: rekey out after 4294967296 blocks
+[IT] probe err| debug1: SSH2_MSG_NEWKEYS sent
+[IT] probe err| debug1: expecting SSH2_MSG_NEWKEYS
+[IT] probe err| debug1: ssh_packet_read_poll2: resetting read seqnr 3
+[IT] probe err| debug1: SSH2_MSG_NEWKEYS received
+[IT] probe err| debug1: rekey in after 4294967296 blocks
+[IT] probe err| debug1: get_agent_identities: ssh_get_authentication_socket: No such file or directory
+[IT] probe err| debug1: Will attempt key: e:\\0github\\new-sync\\ssh-remote-lite\\.vscode-test\\it\\it_key_34164_1790217208716 ED25519 SHA256:xZRi5t/y1tiUGD75Sbc8/AiaMXd9EDZmJ5HQwL1JHGs explicit
+[IT] probe err| debug1: SSH2_MSG_EXT_INFO received
+[IT] probe err| debug1: kex_input_ext_info: server-sig-algs=<ssh-ed25519,ecdsa-sha2-nistp256,ecdsa-sha2-nistp384,ecdsa-sha2-nistp521rsa-sha2-512,rsa-sha2-256,ssh-rsa,ssh-dss>
+[IT] probe err| debug1: SSH2_MSG_SERVICE_ACCEPT received
+[IT] probe err| debug1: Authentications that can continue: 
+[IT] probe err| debug1: Next authentication method: publickey
+[IT] probe err| debug1: Offering public key: e:\\0github\\new-sync\\ssh-remote-lite\\.vscode-test\\it\\it_key_34164_1790217208716 ED25519 SHA256:xZRi5t/y1tiUGD75Sbc8/AiaMXd9EDZmJ5HQwL1JHGs explicit
+[IT] probe err| Connection closed by 127.0.0.1 port 65373
+[IT] probe exit: 255
+[IT] FAIL - system ssh can authenticate with the extension command line (116ms)
+AssertionError [ERR_ASSERTION]: ssh exited 255 - see the "probe err|" lines above for the reason
+255 !== 0
+	at e:\0github\new-sync\ssh-remote-lite\it\suite.js:169:14
+	at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+	at async withCase (e:\0github\new-sync\ssh-remote-lite\it\suite.js:34:5)
+	at async Object.run (e:\0github\new-sync\ssh-remote-lite\it\suite.js:159:5)
+[main 2026-09-24T02:33:29.035Z] Extension host with pid 34164 exited with code: 0, signal: unknown.
+Exit code:   1
+[IT] integration tests failed: TestRunFailedError: Test run failed with code 1
+    at ChildProcess.onProcessClosed (E:\0github\new-sync\ssh-remote-lite\node_modules\@vscode\test-electron\out\runTest
+.js:110:24)
+    at ChildProcess.emit (node:events:519:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:293:12) {
+  code: 1,
+  signal: undefined
+}
+[FAIL] npm run it (real VS Code activates ext + SSH terminal opens and stays alive)
+== LOCAL CHECK: FAILURES PRESENT ==
