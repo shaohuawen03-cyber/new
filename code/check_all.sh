@@ -42,7 +42,12 @@ while IFS= read -r -d '' f; do
         echo "[FAIL] non-ASCII bytes in $f  (keep .ps1 ASCII-only; put Chinese in .md/.json)"
         fail=1
     fi
-done < <(find . -name '*.ps1' -not -path './.git/*' -print0)
+done < <(find . -name '*.ps1' \
+    -not -path './.git/*' \
+    -not -path '*/node_modules/*' \
+    -not -path '*/.vscode-test/*' \
+    -not -path '*/out/*' \
+    -not -path '*/dist/*' -print0)
 if [ "$fail" -eq 0 ]; then
     echo "OK: all .ps1 files are ASCII-only"
 fi
@@ -206,6 +211,10 @@ else
     PS_PARSE='$bad = 0
 Get-ChildItem -Path . -Recurse -Filter *.ps1 | ForEach-Object {
     if ($_.FullName -like "*\.git\*") { return }
+    # vendored trees (a downloaded VS Code, node_modules, build output) are
+    # not ours to police - scanning them made the gate fail on a machine that
+    # had just run the integration test (field report 2026-09-24)
+    if ($_.FullName -like "*\node_modules\*" -or $_.FullName -like "*\.vscode-test\*" -or $_.FullName -like "*\out\*" -or $_.FullName -like "*\dist\*") { return }
     $t = $null
     $e = $null
     [void][System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$t, [ref]$e)

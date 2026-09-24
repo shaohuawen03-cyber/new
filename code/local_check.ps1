@@ -54,10 +54,22 @@ $vsix = Get-ChildItem -Path 'ssh-remote-lite' -Filter '*.vsix' | Sort-Object Nam
 if ($codeCmd -and $vsix) {
     & $codeCmd --install-extension $vsix.FullName --force 2>&1 | Out-String | Write-Output
     Mark ($LASTEXITCODE -eq 0) ('vsix installed - ' + $vsix.Name)
-    $pkg = Get-Content 'ssh-remote-lite\package.json' -Raw | ConvertFrom-Json
-    $extId = $pkg.publisher + '.' + $pkg.name
+    # package.json is UTF-8 and contains Chinese: Get-Content -Raw decodes it
+    # as ANSI/GBK on PS 5.1 and ConvertFrom-Json then dies with
+    # "invalid object, expected : or }" (field report 2026-09-24).
+    $pkgPath = Join-Path (Get-Location) 'ssh-remote-lite\package.json'
+    $pkgText = [System.IO.File]::ReadAllText($pkgPath, (New-Object System.Text.UTF8Encoding($false)))
+    $extId = ''
+    try {
+        $pkg = $pkgText | ConvertFrom-Json
+        $extId = [string]$pkg.publisher + '.' + [string]$pkg.name
+    } catch {
+        # no JSON parser is needed for two flat string fields
+        if ($pkgText -match '"publisher"\s*:\s*"([^"]+)"') { $extId = $Matches[1] }
+        if ($pkgText -match '"name"\s*:\s*"([^"]+)"') { $extId = $extId + '.' + $Matches[1] }
+    }
     $list = & $codeCmd --list-extensions 2>&1 | Out-String
-    Mark ($list -like "*$extId*") ('extension listed in VS Code - ' + $extId)
+    Mark ($extId -and $list -like "*$extId*") ('extension listed in VS Code - ' + $extId)
 } else {
     Mark $false 'vsix install' 'missing code CLI or vsix file'
 }
