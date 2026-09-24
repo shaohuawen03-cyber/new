@@ -236,6 +236,47 @@ if (-not $tcpOk) {
     }
 }
 
+# ---- 8c. WHY is Remote-SSH unstable? ask the server itself (read-only)
+if ($tcpOk) {
+    Write-Output ''
+    Write-Output '===== REMOTE HEALTH (10.10.5.210) ====='
+    $diagSh = Join-Path $PSScriptRoot 'remote_diag.sh'
+    if (Test-Path -LiteralPath $diagSh) {
+        $script = [System.IO.File]::ReadAllText($diagSh, (New-Object System.Text.UTF8Encoding($false)))
+        $script = $script -replace "`r", ''
+        $tmp = [System.IO.Path]::GetTempFileName()
+        [System.IO.File]::WriteAllText($tmp, $script, (New-Object System.Text.UTF8Encoding($false)))
+        # feed the script to a remote bash over stdin - nothing is written on the server
+        $remoteOut = (Get-Content -LiteralPath $tmp -Raw) |
+            & $realExe '-o' 'BatchMode=yes' '-o' 'StrictHostKeyChecking=accept-new' '-o' 'ConnectTimeout=15' $realHost 'bash -s' 2>&1 | Out-String
+        Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue
+        ($remoteOut -split "`r?`n" | Where-Object { $_ -match '\S' }) | ForEach-Object { Write-Output ('   ' + $_) }
+    }
+    Write-Output '--- client side: settings that decide Remote-SSH stability'
+    $vs = Join-Path $env:APPDATA 'Code\User\settings.json'
+    if (Test-Path -LiteralPath $vs) {
+        $vsTxt = [System.IO.File]::ReadAllText($vs, (New-Object System.Text.UTF8Encoding($false)))
+        foreach ($k in @('update.mode', 'update.enableWindowsBackgroundUpdates', 'extensions.autoUpdate',
+                         'extensions.autoCheckUpdates', 'remote.SSH.connectTimeout', 'remote.SSH.useLocalServer',
+                         'remote.SSH.lockfilesInTmp', 'remote.SSH.maxReconnectionAttempts', 'remote.SSH.remotePlatform',
+                         'files.watcherExclude')) {
+            $present = ($vsTxt -like ('*"' + $k + '"*'))
+            Write-Output ('   ' + $k + ' set=' + $present)
+        }
+    }
+    $rsLog = Join-Path $env:APPDATA 'Code\logs'
+    if (Test-Path -LiteralPath $rsLog) {
+        $hits = Get-ChildItem -LiteralPath $rsLog -Recurse -Filter '*.log' -ErrorAction SilentlyContinue |
+            Sort-Object LastWriteTime -Descending | Select-Object -First 6 |
+            ForEach-Object {
+                Select-String -LiteralPath $_.FullName -Pattern 'Remote-SSH|remote-ssh|connection lost|ECONNRESET|server exited|Killed' -ErrorAction SilentlyContinue |
+                    Select-Object -Last 6
+            }
+        if ($hits) { $hits | ForEach-Object { Write-Output ('   ' + $_.Line) } }
+    }
+    Write-Output '===== END REMOTE HEALTH ====='
+}
+
 # ---- 9. diagnostics (never fails the round - it only reports the real state)
 Write-Output ''
 Write-Output '===== DIAGNOSTICS ====='
