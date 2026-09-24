@@ -1,0 +1,462 @@
+check round 12 on LAPTOP-R77M5D6M - failed (exit 1)
+cmd: powershell -NoProfile -ExecutionPolicy Bypass -File code/local_check.ps1
+elapsed: 103s
+
+OK: all .ps1 files are ASCII-only
+OK: sync.config.json branch=arena/01a08f54-new
+OK: sync.config.json branch matches HEAD (arena/01a08f54-new)
+OK: root scripts identical to skills/git-sync/scripts
+OK: no drive-style variable typos ($var:)
+== exits in Invoke-PollRound: 6
+OK: every exit path sets its closing summary
+== exits in Invoke-PollOnce: 2 (lock held / crashed / normal)
+OK: loop closing lines covered (6 exit paths, all with their own summary)
+OK: every .ps1 parses
+[PASS] repo gate (code/check_all.sh)
+[PASS] VS Code CLI found - code
+Installing extensions...
+code.cmd : (node:29396) [DEP0005] DeprecationWarning: Buffer() is deprecated due to security and usability issues. Plea
+se use the Buffer.alloc(), Buffer.allocUnsafe(), or Buffer.from() methods instead.
+所在位置 E:\0github\new-sync\code\local_check.ps1:55 字符: 5
++     & $codeCmd --install-extension $vsix.FullName --force 2>&1 | Out- ...
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ((node:29396) [D...ethods instead.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+(Use `Code --trace-deprecation ...` to show where the warning was created)
+Extension 'ssh-remote-lite-0.0.10.vsix' was successfully installed.
+[PASS] vsix installed - ssh-remote-lite-0.0.10.vsix
+[PASS] extension listed in VS Code - shaohuawen03.ssh-remote-lite
+[PASS] installed version matches the repo vsix - 0.0.10
+[SKIP] Antigravity CLI not found on PATH - install the vsix there by hand if you use it
+> ssh-remote-lite@0.0.10 test
+> npm run compile && node --test "out/test/*.test.js"
+> ssh-remote-lite@0.0.10 compile
+> tsc -p .
+TAP version 13
+# Subtest: ensureLocalKeyPair: 鏈満娌℃湁瀵嗛挜鏃惰嚜鍔ㄧ敓鎴愪竴鎶?ed25519
+ok 1 - ensureLocalKeyPair: 鏈満娌℃湁瀵嗛挜鏃惰嚜鍔ㄧ敓鎴愪竴鎶?ed25519
+  ---
+  duration_ms: 65.4288
+  type: 'test'
+  ...
+# Subtest: 瀵嗙爜鐧诲綍 -> 閮ㄧ讲鍏挜 -> 绯荤粺 ssh 鍏嶅瘑杩涘叆
+not ok 2 - 瀵嗙爜鐧诲綍 -> 閮ㄧ讲鍏挜 -> 绯荤粺 ssh 鍏嶅瘑杩涘叆
+  ---
+  duration_ms: 102.7621
+  type: 'test'
+  location: 'E:\\0github\\new-sync\\ssh-remote-lite\\out\\test\\autologin.test.js:77:22'
+  failureType: 'testCodeFailure'
+  error: |-
+    鍏嶅瘑鐧诲綍澶辫触: Load key "C:\\Users\\\346\226\207\345\260\221\\AppData\\Local\\Temp\\srl-ssh-5VNn61\\id_ed25519": bad permissions
+ | testuser@127.0.0.1: Permission denied ().
+ | 
+    255 !== 0
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 0
+  actual: 255
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (E:\0github\new-sync\ssh-remote-lite\out\test\autologin.test.js:114:22)
+    process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: 娌℃湁瀵嗙爜涔熸病鏈夌閽ユ椂涓嶆姤閿? 鍙槸涓嶉儴缃?ok 3 - 娌℃湁瀵嗙爜涔熸病鏈夌閽ユ椂涓嶆姤閿? 鍙槸涓嶉儴缃?  ---
+  duration_ms: 1.3428
+  type: 'test'
+  ...
+# Subtest: parseAuthority: user@host:port
+ok 4 - parseAuthority: user@host:port
+  ---
+  duration_ms: 1.0612
+  type: 'test'
+  ...
+# Subtest: parseAuthority: 鐪佺暐绔彛榛樿 22
+ok 5 - parseAuthority: 鐪佺暐绔彛榛樿 22
+  ---
+  duration_ms: 0.1508
+  type: 'test'
+  ...
+# Subtest: parseAuthority: 鐪佺暐鐢ㄦ埛鍚?ok 6 - parseAuthority: 鐪佺暐鐢ㄦ埛鍚?  ---
+  duration_ms: 0.147
+  type: 'test'
+  ...
+# Subtest: parseAuthority: 闈炴硶绔彛鍥為€€ 22
+ok 7 - parseAuthority: 闈炴硶绔彛鍥為€€ 22
+  ---
+  duration_ms: 0.2094
+  type: 'test'
+  ...
+# Subtest: makeAuthority: 缂虹渷鍊?ok 8 - makeAuthority: 缂虹渷鍊?  ---
+  duration_ms: 0.1605
+  type: 'test'
+  ...
+# Subtest: makeAuthority: 鍏ㄩ噺
+ok 9 - makeAuthority: 鍏ㄩ噺
+  ---
+  duration_ms: 0.1207
+  type: 'test'
+  ...
+# Subtest: expandHome: 灞曞紑 ~
+ok 10 - expandHome: 灞曞紑 ~
+  ---
+  duration_ms: 0.628
+  type: 'test'
+  ...
+# Subtest: 瀵嗙爜璁よ瘉 + SFTP 鍏ㄦ祦绋?(mkdir/鍐?璇?鍒楃洰褰?缁熻/鏀瑰悕/鍒犻櫎)
+ok 11 - 瀵嗙爜璁よ瘉 + SFTP 鍏ㄦ祦绋?(mkdir/鍐?璇?鍒楃洰褰?缁熻/鏀瑰悕/鍒犻櫎)
+  ---
+  duration_ms: 57.2031
+  type: 'test'
+  ...
+# Subtest: 璇诲彇涓嶅瓨鍦ㄧ殑鏂囦欢搴旀姤閿?ok 12 - 璇诲彇涓嶅瓨鍦ㄧ殑鏂囦欢搴旀姤閿?  ---
+  duration_ms: 13.9771
+  type: 'test'
+  ...
+# Subtest: 閿欒瀵嗙爜搴旇鎷掔粷
+ok 13 - 閿欒瀵嗙爜搴旇鎷掔粷
+  ---
+  duration_ms: 10.9676
+  type: 'test'
+  ...
+# Subtest: shell 缁堢: 娆㈣繋璇?+ 杈撳叆鍥炴樉
+ok 14 - shell 缁堢: 娆㈣繋璇?+ 杈撳叆鍥炴樉
+  ---
+  duration_ms: 72.2023
+  type: 'test'
+  ...
+# Subtest: execCommand 鍦ㄨ繙绔墽琛屽苟杩斿洖閫€鍑虹爜
+ok 15 - execCommand 鍦ㄨ繙绔墽琛屽苟杩斿洖閫€鍑虹爜
+  ---
+  duration_ms: 11.2181
+  type: 'test'
+  ...
+# Subtest: buildAuthorizeKeyCommand 鐢?base64 浼犺緭鍏挜
+ok 16 - buildAuthorizeKeyCommand 鐢?base64 浼犺緭鍏挜
+  ---
+  duration_ms: 0.4357
+  type: 'test'
+  ...
+# Subtest: contributes.terminal.profiles 閲屾湁鎻掍欢娉ㄥ唽鐨勯偅涓?profile
+ok 17 - contributes.terminal.profiles 閲屾湁鎻掍欢娉ㄥ唽鐨勯偅涓?profile
+  ---
+  duration_ms: 1.802
+  type: 'test'
+  ...
+# Subtest: activationEvents 瑕嗙洊缁堢 profile 涓庡惎鍔ㄥ悗婵€娲?ok 18 - activationEvents 瑕嗙洊缁堢 profile 涓庡惎鍔ㄥ悗婵€娲?  ---
+  duration_ms: 0.2485
+  type: 'test'
+  ...
+# Subtest: 涓€閿厤缃懡浠ゅ凡澹版槑
+ok 19 - 涓€閿厤缃懡浠ゅ凡澹版槑
+  ---
+  duration_ms: 0.2238
+  type: 'test'
+  ...
+# Subtest: defaultHost 閰嶇疆椤瑰瓨鍦?ok 20 - defaultHost 閰嶇疆椤瑰瓨鍦?  ---
+  duration_ms: 0.2436
+  type: 'test'
+  ...
+# Subtest: 闈欐€?profile: 鍚嶅瓧甯︿富鏈? 鍛戒护琛屽甫绔彛/瀵嗛挜
+ok 21 - 闈欐€?profile: 鍚嶅瓧甯︿富鏈? 鍛戒护琛屽甫绔彛/瀵嗛挜
+  ---
+  duration_ms: 1.4382
+  type: 'test'
+  ...
+# Subtest: 娌℃湁绉侀挜鏃朵笉鍔?-i
+ok 22 - 娌℃湁绉侀挜鏃朵笉鍔?-i
+  ---
+  duration_ms: 0.2397
+  type: 'test'
+  ...
+# Subtest: mergeProfileSetting: 鍙鍔犺嚜宸遍偅涓€鏉? 涓嶅姩鍒汉鐨?ok 23 - mergeProfileSetting: 鍙鍔犺嚜宸遍偅涓€鏉? 涓嶅姩鍒汉鐨?  ---
+  duration_ms: 0.4212
+  type: 'test'
+  ...
+# Subtest: sanitizeKeyPath: 涓嶅瓨鍦ㄧ殑绉侀挜涓嶄細琚啓杩涘懡浠よ
+ok 24 - sanitizeKeyPath: 涓嶅瓨鍦ㄧ殑绉侀挜涓嶄細琚啓杩涘懡浠よ
+  ---
+  duration_ms: 0.234
+  type: 'test'
+  ...
+# Subtest: 绯荤粺 ssh 鐢ㄥ叕閽ョ櫥褰曞苟鎵ц鍛戒护 (exec)
+ok 25 - 绯荤粺 ssh 鐢ㄥ叕閽ョ櫥褰曞苟鎵ц鍛戒护 (exec)
+  ---
+  duration_ms: 91.8608
+  type: 'test'
+  ...
+# Subtest: 绯荤粺 ssh 寮€浜や簰寮?shell 鍚庝繚鎸佸瓨娲?(缁堢鍦烘櫙)
+ok 26 - 绯荤粺 ssh 寮€浜や簰寮?shell 鍚庝繚鎸佸瓨娲?(缁堢鍦烘櫙)
+  ---
+  duration_ms: 4018.0439
+  type: 'test'
+  ...
+1..26
+# tests 26
+# suites 0
+# pass 25
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 4402.1534
+[FAIL] npm test (unit + e2e + ssh CLI + autologin + profile contract, 26 cases)
+> ssh-remote-lite@0.0.10 it
+> node it/runTest.js
+node.exe : - Resolving version...
+所在位置 行:1 字符: 1
++ & "E:\hermes\node/node.exe" "E:\hermes\node/node_modules/npm/bin/npm- ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (- Resolving version...:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+鈭?Validated version: 1.139.0
+鈭?Found existing install in E:\0github\new-sync\ssh-remote-lite\.vscode-test\vscode-win32-x64-archive-1.139.0
+[main 2026-09-24T07:13:12.656Z] StorageMainService: creating application shared storage
+[main 2026-09-24T07:13:12.850Z] [shared storage] Creating shared storage database at ':memory:' (wasCreated: true)
+[main 2026-09-24T07:13:12.850Z] [shared storage] Initializing fallback application storage (path: in-memory)
+[main 2026-09-24T07:13:13.065Z] [shared storage] Fallback application storage initialized with 3 items
+[main 2026-09-24T07:13:13.066Z] update#setState disabled
+[main 2026-09-24T07:13:13.066Z] update#ctor - updates are disabled by the environment
+[RemoteAgentHost] Reconciling: desired=[], current=[]
+[AgentHost:renderer] Acquiring MessagePort to agent host...
+[main 2026-09-24T07:13:13.752Z] AgentHostProcessManager: agent host started
+[ChatModelSelection] event=no-model-at-toolbar-build surface="workbench" sessionKey=undefined conversationKey=undefined modelTarget=undefined storageKey="chat.currentLanguageModel.panel" widgetViewKind="view"
+[AgentHost:renderer] MessagePort acquired, creating client...
+[ChatModelSelection] event=no-model-at-toolbar-build surface="workbench" sessionKey="local" conversationKey="vscode-chat-session://local/Njk5OTI3MTUtNzQ4NS00ODk3LWE0OTQtMzcyMTcwNzk0YzNh" modelTarget=undefined storageKey="chat.currentLanguageModel.panel" widgetViewKind="view"
+Started local extension host with pid 18464.
+Loading development extension at e:\0github\new-sync\ssh-remote-lite
+[main 2026-09-24T07:13:14.452Z] [AgentHost:stderr] (node:23868) [DEP0169] DeprecationWarning: `url.parse()` behavior is
+ not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not iss
+ued for `url.parse()` vulnerabilities.
+(Use `Code --trace-deprecation ...` to show where the warning was created)
+[AgentHost:renderer] Protocol connection established; clientId=0d5e3ba9-14bd-4394-9561-0e31b0984ff1
+[AccountPolicyGate] apply: state=inactive, reason=undefined, isRestricted=false
+Unknown channel: agentHostClientByokLm
+Unknown channel: agentHostClientProxy
+Settings Sync: Account status changed from uninitialized to unavailable
+[ChatModelSelection] event=no-model-at-toolbar-build surface="workbench" sessionKey="local" conversationKey="vscode-chat-session://local/Njk5OTI3MTUtNzQ4NS00ODk3LWE0OTQtMzcyMTcwNzk0YzNh" modelTarget=undefined storageKey="chat.currentLanguageModel.panel" widgetViewKind="view"
+Unknown channel: agentHostClientProxy
+[AgentHost] No signed-in session resolved for resource: https://api.github.com
+[AgentHost] No signed-in session resolved for resource: https://api.github.com
+[AgentHost] No signed-in session resolved for resource: https://api.github.com
+[AgentHost] No signed-in session resolved for resource: https://api.github.com/repos
+[AgentHost] No signed-in session resolved for resource: https://api.github.com/repos
+[AgentHost] No signed-in session resolved for resource: https://api.github.com/repos
+[AgentHost] No signed-in session resolved for resource: https://api.github.com
+[AgentHost] No signed-in session resolved for resource: https://api.github.com
+[AgentHost] No signed-in session resolved for resource: https://api.github.com
+[AgentHost] No signed-in session resolved for resource: https://api.github.com/repos
+[AgentHost] No signed-in session resolved for resource: https://api.github.com/repos
+[AgentHost] No signed-in session resolved for resource: https://api.github.com/repos
+[IT] key ACL locked down (owner rights + 鏂囧皯)
+[IT] test ssh server on 127.0.0.1:57807, key e:\0github\new-sync\ssh-remote-lite\.vscode-test\it\it_key_18464_1790233996201
+[IT] ok   - extension is installed and activates (57ms)
+[IT] probe: "C:\Windows\System32\OpenSSH\ssh.exe" -p 57807 -o StrictHostKeyChecking=accept-new -o IdentitiesOnly=yes -i e:\0github\new-sync\ssh-remote-lite\.vscode-test\it\it_key_18464_1790233996201 testuser@127.0.0.1 -v -o BatchMode=yes -o IdentitiesOnly=yes echo IT_SSH_OK
+[IT] probe err| debug1: kex: server->client cipher: aes128-ctr MAC: hmac-sha2-256-etm@openssh.com compression: none
+[IT] probe err| debug1: kex: client->server cipher: aes128-ctr MAC: hmac-sha2-256-etm@openssh.com compression: none
+[IT] probe err| debug1: expecting SSH2_MSG_KEX_ECDH_REPLY
+[IT] probe err| debug1: SSH2_MSG_KEX_ECDH_REPLY received
+[IT] probe err| debug1: Server host key: ssh-ed25519 SHA256:Gv9LC+pkxA9t0vHnbbDsnzrZFJM/5eGrYxAL83DF/nA
+[IT] probe err| debug1: load_hostkeys: fopen C:\\Users\\\346\226\207\345\260\221/.ssh/known_hosts2: No such file or directory
+[IT] probe err| debug1: load_hostkeys: fopen __PROGRAMDATA__\\ssh/ssh_known_hosts: No such file or directory
+[IT] probe err| debug1: load_hostkeys: fopen __PROGRAMDATA__\\ssh/ssh_known_hosts2: No such file or directory
+[IT] probe err| debug1: checking without port identifier
+[IT] probe err| debug1: load_hostkeys: fopen C:\\Users\\\346\226\207\345\260\221/.ssh/known_hosts2: No such file or directory
+[IT] probe err| debug1: load_hostkeys: fopen __PROGRAMDATA__\\ssh/ssh_known_hosts: No such file or directory
+[IT] probe err| debug1: load_hostkeys: fopen __PROGRAMDATA__\\ssh/ssh_known_hosts2: No such file or directory
+[IT] probe err| Warning: Permanently added '[127.0.0.1]:57807' (ED25519) to the list of known hosts.
+[IT] probe err| debug1: check_host_key: hostkey not known or explicitly trusted: disabling UpdateHostkeys
+[IT] probe err| debug1: ssh_packet_send2_wrapped: resetting send seqnr 3
+[IT] probe err| debug1: rekey out after 4294967296 blocks
+[IT] probe err| debug1: SSH2_MSG_NEWKEYS sent
+[IT] probe err| debug1: expecting SSH2_MSG_NEWKEYS
+[IT] probe err| debug1: ssh_packet_read_poll2: resetting read seqnr 3
+[IT] probe err| debug1: SSH2_MSG_NEWKEYS received
+[IT] probe err| debug1: rekey in after 4294967296 blocks
+[IT] probe err| debug1: get_agent_identities: ssh_get_authentication_socket: No such file or directory
+[IT] probe err| debug1: Will attempt key: e:\\0github\\new-sync\\ssh-remote-lite\\.vscode-test\\it\\it_key_18464_1790233996201 ED25519 SHA256:ENSMBSczGFhrA03pXQBpaztjUeafAX1Tp3QFsgUYit0 explicit
+[IT] probe err| debug1: SSH2_MSG_EXT_INFO received
+[IT] probe err| debug1: kex_input_ext_info: server-sig-algs=<ssh-ed25519,ecdsa-sha2-nistp256,ecdsa-sha2-nistp384,ecdsa-sha2-nistp521rsa-sha2-512,rsa-sha2-256,ssh-rsa,ssh-dss>
+[IT] probe err| debug1: SSH2_MSG_SERVICE_ACCEPT received
+[IT] probe err| debug1: Authentications that can continue: 
+[IT] probe err| debug1: Next authentication method: publickey
+[IT] probe err| debug1: Offering public key: e:\\0github\\new-sync\\ssh-remote-lite\\.vscode-test\\it\\it_key_18464_1790233996201 ED25519 SHA256:ENSMBSczGFhrA03pXQBpaztjUeafAX1Tp3QFsgUYit0 explicit
+[IT] probe err| debug1: Server accepts key: e:\\0github\\new-sync\\ssh-remote-lite\\.vscode-test\\it\\it_key_18464_1790233996201 ED25519 SHA256:ENSMBSczGFhrA03pXQBpaztjUeafAX1Tp3QFsgUYit0 explicit
+[IT] probe err| Bad permissions. Try removing permissions for user: \\OWNER RIGHTS (S-1-3-4) on file e:/0github/new-sync/ssh-remote-lite/.vscode-test/it/it_key_18464_1790233996201.
+[IT] probe err| @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+[IT] probe err| @         WARNING: UNPROTECTED PRIVATE KEY FILE!          @
+[IT] probe err| @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+[IT] probe err| Permissions for 'e:\\0github\\new-sync\\ssh-remote-lite\\.vscode-test\\it\\it_key_18464_1790233996201' are too open.
+[IT] probe err| It is required that your private key files are NOT accessible by others.
+[IT] probe err| This private key will be ignored.
+[IT] probe err| Load key "e:\\0github\\new-sync\\ssh-remote-lite\\.vscode-test\\it\\it_key_18464_1790233996201": bad permissions
+[IT] probe err| debug1: No more authentication methods to try.
+[IT] probe err| testuser@127.0.0.1: Permission denied ().
+[IT] probe exit: 255
+[IT] FAIL - system ssh can authenticate with the extension command line (83ms)
+AssertionError [ERR_ASSERTION]: ssh exited 255 - see the "probe err|" lines above for the reason
+255 !== 0
+	at e:\0github\new-sync\ssh-remote-lite\it\suite.js:196:14
+	at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+	at async withCase (e:\0github\new-sync\ssh-remote-lite\it\suite.js:35:5)
+	at async Object.run (e:\0github\new-sync\ssh-remote-lite\it\suite.js:186:5)
+[main 2026-09-24T07:13:16.476Z] Extension host with pid 18464 exited with code: 0, signal: unknown.
+Exit code:   1
+[IT] integration tests failed: TestRunFailedError: Test run failed with code 1
+    at ChildProcess.onProcessClosed (E:\0github\new-sync\ssh-remote-lite\node_modules\@vscode\test-electron\out\runTest
+.js:110:24)
+    at ChildProcess.emit (node:events:519:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:293:12) {
+  code: 1,
+  signal: undefined
+}
+[FAIL] npm run it (real VS Code activates ext + SSH terminal opens and stays alive)
+[..] writing the terminal profile for 25wenshaohua@10.10.5.210
+   == target : 25wenshaohua@10.10.5.210:22
+     [ok]   ssh client: C:\Windows\System32\OpenSSH\ssh.exe
+     [warn] tcp 10.10.5.210:22 did NOT answer - VPN / firewall / wrong address?
+     [warn] the profile will still be written, but the terminal cannot connect until this works
+     [ok]   ~/.ssh/config already has a Host block for 10.10.5.210 - the profile will just use it
+   == profile : SSH Remote Lite (25wenshaohua@10.10.5.210)
+      path    : C:\Windows\System32\OpenSSH\ssh.exe
+      args    : -o StrictHostKeyChecking=accept-new 10.10.5.210
+      (no -i: ssh will ask "password:" inside the terminal, like before)
+   == VS Code : C:\Users\文少\AppData\Roaming\Code\User\settings.json
+     [ok]   default terminal set to: SSH Remote Lite (25wenshaohua@10.10.5.210)
+      backup: C:\Users\文少\AppData\Roaming\Code\User\settings.json.srl-bak
+   == Antigravity IDE : C:\Users\文少\AppData\Roaming\Antigravity IDE\User\settings.json
+     [ok]   default terminal set to: SSH Remote Lite (25wenshaohua@10.10.5.210)
+      backup: C:\Users\文少\AppData\Roaming\Antigravity IDE\User\settings.json.srl-bak
+   == done. In the IDE: Ctrl+Shift+P -> 'Developer: Reload Window', then open a NEW terminal.
+      It should land on 25wenshaohua@10.10.5.210 right away.
+      It will ask 'password:' in the terminal - type it there.
+   setup_terminal exit: 1
+[PASS] terminal profile written into VS Code settings.json
+===== DIAGNOSTICS =====
+--- settings: C:\Users\文少\AppData\Roaming\Code\User\settings.json
+       "terminal.integrated.initialHint":  false,
+                                         "10.10.5.210":  "linux"
+       "terminal.integrated.profiles.windows":  {
+                                                    "SSH Remote Lite (25wenshaohua@10.10.5.210)":  {
+                                                                                                       "path":  "C:\\Windows\\System32\\OpenSSH\\ssh.exe",
+                                                                                                       "args":  [
+                                                                                                                    "StrictHostKeyChecking=accept-new",
+                                                                                                                    "10.10.5.210"
+       "terminal.integrated.defaultProfile.windows":  "SSH Remote Lite (25wenshaohua@10.10.5.210)"
+--- settings MISSING: C:\Users\文少\AppData\Roaming\Antigravity\User\settings.json
+--- settings MISSING: C:\Users\文少\AppData\Roaming\Code - Insiders\User\settings.json
+--- ~/.ssh
+   config  1079 bytes
+   config.bak  911 bytes
+   config.bak2  970 bytes
+   id_ed25519  419 bytes
+   id_ed25519.pub  105 bytes
+   id_ed25519_light_skills  432 bytes
+   id_ed25519_light_skills.pub  114 bytes
+   id_ed25519_mqgg  411 bytes
+   id_ed25519_mqgg.pub  101 bytes
+   id_ed25519_shaohua  419 bytes
+   id_ed25519_shaohua.pub  105 bytes
+   id_rsa  3434 bytes
+   id_rsa.pub  744 bytes
+   known_hosts  6321 bytes
+   known_hosts.old  4171 bytes
+   vs1_dk  2610 bytes
+   zz_key  2602 bytes
+--- ~/.ssh/config (host blocks only)
+   Host 25wenshaohua 10.10.5.210 hpc-mu01
+     HostName 10.10.5.210
+     User 25wenshaohua
+     Port 22
+     IdentityFile ~/.ssh/id_ed25519
+     IdentitiesOnly yes
+     ServerAliveInterval 60
+     ServerAliveCountMax 120
+     TCPKeepAlive yes
+     IPQoS none
+     UpdateHostKeys no
+   Host wsl local-wsl
+     HostName 127.0.0.1
+     User w24e
+     Port 22
+   Host wheshell.hpccube.com
+     HostName wheshell.hpccube.com
+     User scnlizwblw
+     Port 65032
+     IdentityFile ~/.ssh/vs1_dk
+     IdentitiesOnly yes
+     ServerAliveInterval 60
+     ServerAliveCountMax 120
+   Host zz
+     HostName zzeshell.scnet.cn
+     User sdldyh
+     Port 65032
+     IdentityFile ~/.ssh/zz_key
+     IdentitiesOnly yes
+     ServerAliveInterval 60
+     ServerAliveCountMax 120
+   User 25wenshaohua
+   Host 192.168.1.109
+     HostName 192.168.1.109
+     User BNI
+     Port 22
+   # 璐﹀彿 1锛歴haohuawen (榛樿)
+   Host github.com
+       HostName github.com
+       User git
+       IdentityFile ~/.ssh/id_ed25519_shaohua
+   # 璐﹀彿 2锛歮qgg5630 (鍒悕 host)
+   Host github-mqgg
+       HostName github.com
+       User git
+       IdentityFile ~/.ssh/id_ed25519_mqgg
+--- network to the server
+   ping=False  tcp22=False  via=192.168.110.172
+--- Antigravity layout
+   C:\Users\文少\AppData\Local\Programs\Antigravity > locales
+   C:\Users\文少\AppData\Local\Programs\Antigravity > resources
+   C:\Users\文少\AppData\Local\Programs\Antigravity > Antigravity.exe
+   C:\Users\文少\AppData\Local\Programs\Antigravity > chrome_100_percent.pak
+   C:\Users\文少\AppData\Local\Programs\Antigravity > chrome_200_percent.pak
+   C:\Users\文少\AppData\Local\Programs\Antigravity > d3dcompiler_47.dll
+   C:\Users\文少\AppData\Local\Programs\Antigravity > dxcompiler.dll
+   C:\Users\文少\AppData\Local\Programs\Antigravity > dxil.dll
+   C:\Users\文少\AppData\Local\Programs\Antigravity > ffmpeg.dll
+   C:\Users\文少\AppData\Local\Programs\Antigravity > icudtl.dat
+   C:\Users\文少\AppData\Local\Programs\Antigravity > libEGL.dll
+   C:\Users\文少\AppData\Local\Programs\Antigravity > libGLESv2.dll
+   C:\Users\文少\AppData\Local\Programs\Antigravity > LICENSE.electron.txt
+   C:\Users\文少\AppData\Local\Programs\Antigravity > LICENSES.chromium.html
+   C:\Users\文少\AppData\Local\Programs\Antigravity > resources.pak
+   C:\Users\文少\AppData\Local\Programs\Antigravity > snapshot_blob.bin
+   C:\Users\文少\AppData\Local\Programs\Antigravity > Uninstall Antigravity.exe
+   C:\Users\文少\AppData\Local\Programs\Antigravity > v8_context_snapshot.bin
+   C:\Users\文少\AppData\Local\Programs\Antigravity > vk_swiftshader.dll
+   C:\Users\文少\AppData\Local\Programs\Antigravity > vk_swiftshader_icd.json
+   settings candidate: C:\Users\文少\AppData\Roaming\Antigravity\User\settings.json  exists=False
+   settings candidate: C:\Users\文少\AppData\Roaming\Google\Antigravity\User\settings.json  exists=False
+   settings candidate: C:\Users\文少\.antigravity\settings.json  exists=False
+   settings candidate: C:\Users\文少\AppData\Roaming\antigravity\User\settings.json  exists=False
+--- ssh client
+   exe: C:\Windows\System32\OpenSSH\ssh.exe  exists=True
+   OpenSSH_for_Windows_9.5p2, LibreSSL 3.8.2
+--- reachability of the real server (no password is sent; batch mode)
+   ssh.exe : OpenSSH_for_Windows_9.5p2, LibreSSL 3.8.2
+   所在位置 E:\0github\new-sync\code\local_check.ps1:225 字符: 12
+   +     $out = & $sshExe '-v' '-o' 'BatchMode=yes' '-o' 'StrictHostKeyChe ...
+   +            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+       + CategoryInfo          : NotSpecified: (OpenSSH_for_Win... LibreSSL 3.8.2:String) [], RemoteException
+       + FullyQualifiedErrorId : NativeCommandError
+   debug1: Reading configuration data C:\\Users\\\346\226\207\345\260\221/.ssh/config
+   debug1: C:\\Users\\\346\226\207\345\260\221/.ssh/config line 1: Applying options for 10.10.5.210
+   debug1: Connecting to 10.10.5.210 [10.10.5.210] port 22.
+   debug1: connect to address 10.10.5.210 port 22: Connection timed out
+   ssh: connect to host 10.10.5.210 port 22: Connection timed out
+--- IDE versions
+   VS Code 1.85.2
+   antigravity candidate: C:\Users\文少\AppData\Local\Programs\Antigravity\bin\antigravity.cmd  exists=False
+   antigravity candidate: C:\Users\文少\AppData\Local\Programs\Antigravity\Antigravity.exe  exists=True
+   antigravity candidate: C:\Program Files\Antigravity\bin\antigravity.cmd  exists=False
+===== END DIAGNOSTICS =====
+== LOCAL CHECK: FAILURES PRESENT ==
