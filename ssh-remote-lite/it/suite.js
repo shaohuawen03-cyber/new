@@ -62,26 +62,48 @@ function writePrivateKey(dir, name, contents) {
   return file;
 }
 
+// NB: this MUST be async. The test SSH server runs inside THIS process (the
+// extension host), so a blocking spawnSync deadlocks it: ssh connects, sends
+// its version string and then waits forever because the event loop is frozen
+// (round 3: "spawnSync ... ETIMEDOUT" right after "Local version string").
 function runSshProbe(opts, extraArgs) {
-  // opts = the very TerminalOptions the extension would use, so the probe
-  // tests the real command line, not a hand-written copy of it
   const args = [...opts.shellArgs, ...extraArgs];
   log(`probe: "${opts.shellPath}" ${args.join(' ')}`);
-  const r = cp.spawnSync(opts.shellPath, args, {
-    encoding: 'utf8',
-    timeout: 30000,
-    windowsHide: true,
+  return new Promise((resolve) => {
+    const child = cp.spawn(opts.shellPath, args, { windowsHide: true });
+    let out = '';
+    let err = '';
+    child.stdout.on('data', (d) => {
+      out += d.toString();
+    });
+    child.stderr.on('data', (d) => {
+      err += d.toString();
+    });
+    const killer = setTimeout(() => {
+      try {
+        child.kill();
+      } catch (e) {
+        /* ignore */
+      }
+    }, 30000);
+    child.on('error', (e) => {
+      clearTimeout(killer);
+      log(`probe spawn error: ${e.message}`);
+      resolve({ status: null, out, err });
+    });
+    child.on('close', (code) => {
+      clearTimeout(killer);
+      out.trim().split(/\r?\n/).filter(Boolean).forEach((l) => log(`probe out| ${l}`));
+      err
+        .trim()
+        .split(/\r?\n/)
+        .filter(Boolean)
+        .slice(-40)
+        .forEach((l) => log(`probe err| ${l}`));
+      log(`probe exit: ${code}`);
+      resolve({ status: code, out, err });
+    });
   });
-  const out = `${r.stdout || ''}`.trim();
-  const err = `${r.stderr || ''}`.trim();
-  if (out) {
-    out.split(/\r?\n/).forEach((l) => log(`probe out| ${l}`));
-  }
-  if (err) {
-    err.split(/\r?\n/).slice(-40).forEach((l) => log(`probe err| ${l}`));
-  }
-  log(`probe exit: ${r.status} (error: ${r.error ? r.error.message : 'none'})`);
-  return { status: r.status, out, err };
 }
 
 async function run() {
@@ -116,7 +138,7 @@ async function run() {
 
     await withCase('system ssh can authenticate with the extension command line', async () => {
       const opts = terminal.sshTerminalOptions(cfg);
-      const probe = runSshProbe(opts, [
+      const probe = await runSshProbe(opts, [
         '-v',
         '-o',
         'BatchMode=yes',
