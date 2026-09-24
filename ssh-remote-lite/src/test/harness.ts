@@ -259,20 +259,52 @@ export function startTestServer(
 
   const server = new Server({ hostKeys: [keys.private] }, (client) => {
     client.on('authentication', (ctx) => {
-      if (ctx.method === 'password' && ctx.username === user && ctx.password === password) {
-        return ctx.accept();
-      }
-      if (ctx.method === 'publickey' && authorizedPubKey && ctx.username === user) {
-        const parsed = utils.parseKey(authorizedPubKey);
-        const pubBuf =
-          parsed && !(parsed instanceof Error) && typeof (parsed as any).getPublicSSH === 'function'
-            ? (parsed as any).getPublicSSH()
-            : null;
-        if (pubBuf && (ctx.key as unknown as Buffer).equals(pubBuf)) {
+      try {
+        if (ctx.method === 'password' && ctx.username === user && ctx.password === password) {
           return ctx.accept();
         }
+        if (ctx.method === 'publickey' && authorizedPubKey && ctx.username === user) {
+          // ctx.key is { algo, data, comment } - NOT a Buffer. Calling
+          // .equals() on it threw inside the event handler, which ssh2 turns
+          // into an abrupt "Connection closed by <host>" and a client exit
+          // 255 (field report 2026-09-24, integration round 5).
+          const parsed = utils.parseKey(authorizedPubKey);
+          if (parsed && !(parsed instanceof Error)) {
+            const allowed = Array.isArray(parsed) ? parsed[0] : parsed;
+            const pubBuf: Buffer = (allowed as any).getPublicSSH();
+            const offered: Buffer = (ctx.key as any).data;
+            if (
+              pubBuf &&
+              offered &&
+              (ctx.key as any).algo === (allowed as any).type &&
+              Buffer.compare(pubBuf, offered) === 0
+            ) {
+              // no signature yet = the "may I offer this key?" query phase
+              if (!(ctx as any).signature) {
+                return ctx.accept();
+              }
+              // NB: two arguments only. Passing the algo ('ssh-ed25519') as
+              // the third one makes node throw
+              // "Invalid digest: ssh-ed25519" (ERR_CRYPTO_INVALID_DIGEST).
+              const ok = (allowed as any).verify((ctx as any).blob, (ctx as any).signature);
+              if (ok === true) {
+                return ctx.accept();
+              }
+            }
+          }
+        }
+        return ctx.reject();
+      } catch (err) {
+        // never let a throw kill the connection silently - the client would
+        // only see "Connection closed", which says nothing about the cause
+        // eslint-disable-next-line no-console
+        console.error('[harness] authentication handler failed:', err);
+        try {
+          return ctx.reject();
+        } catch (e) {
+          return undefined;
+        }
       }
-      return ctx.reject();
     });
     client.on('ready', () => {
       client.on('session', (accept) => {
