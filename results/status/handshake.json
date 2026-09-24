@@ -1,9 +1,9 @@
 {
-  "round": 20,
-  "arena_state": "awaiting_check",
-  "local_state": "pending",
-  "arena_updated": "2026-09-24 08:49:44",
-  "local_updated": null,
-  "host": "",
-  "note": "round 20: remote health probe on 10.10.5.210 + client stability settings audit"
+    "round":  20,
+    "arena_state":  "awaiting_check",
+    "local_state":  "passed",
+    "arena_updated":  "2026-09-24 08:49:44",
+    "local_updated":  "2026-09-24 16:55:09",
+    "host":  "LAPTOP-R77M5D6M",
+    "note":  "round 20: remote health probe on 10.10.5.210 + client stability settings audit"
 }
