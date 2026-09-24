@@ -1,9 +1,9 @@
 {
-  "round": 6,
-  "arena_state": "awaiting_check",
-  "local_state": "pending",
-  "arena_updated": "2026-09-24 02:35:59",
-  "local_updated": null,
-  "host": "",
-  "note": "round 6: harness publickey auth fixed (reproduced and covered by npm test) - expect the real VS Code SSH terminal to stay alive"
+    "round":  6,
+    "arena_state":  "awaiting_check",
+    "local_state":  "failed",
+    "arena_updated":  "2026-09-24 02:35:59",
+    "local_updated":  "2026-09-24 10:38:19",
+    "host":  "LAPTOP-R77M5D6M",
+    "note":  "round 6: harness publickey auth fixed (reproduced and covered by npm test) - expect the real VS Code SSH terminal to stay alive"
 }
