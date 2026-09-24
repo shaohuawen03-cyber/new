@@ -1,0 +1,275 @@
+check round 1 on LAPTOP-R77M5D6M - failed (exit 1)
+cmd: powershell -NoProfile -ExecutionPolicy Bypass -File code/local_check.ps1
+elapsed: 34s
+
+[FAIL] non-ASCII bytes in ./ssh-remote-lite/.vscode-test/vscode-win32-x64-archive-1.139.0/2242ebbb54/resources/app/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration.ps1  (keep .ps1 ASCII-only; put Chinese in .md/.json)
+OK: sync.config.json branch=arena/01a08f54-new
+OK: sync.config.json branch matches HEAD (arena/01a08f54-new)
+OK: root scripts identical to skills/git-sync/scripts
+OK: no drive-style variable typos ($var:)
+== exits in Invoke-PollRound: 6
+OK: every exit path sets its closing summary
+== exits in Invoke-PollOnce: 2 (lock held / crashed / normal)
+OK: loop closing lines covered (6 exit paths, all with their own summary)
+OK: every .ps1 parses
+[FAIL] repo gate (code/check_all.sh)
+[PASS] VS Code CLI found - code
+Installing extensions...
+code.cmd : (node:141940) [DEP0005] DeprecationWarning: Buffer() is deprecated due to security and usability issues. Ple
+ase use the Buffer.alloc(), Buffer.allocUnsafe(), or Buffer.from() methods instead.
+所在位置 E:\0github\new-sync\code\local_check.ps1:55 字符: 5
++     & $codeCmd --install-extension $vsix.FullName --force 2>&1 | Out- ...
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ((node:141940) [...ethods instead.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+(Use `Code --trace-deprecation ...` to show where the warning was created)
+Extension 'ssh-remote-lite-0.0.6.vsix' was successfully installed.
+[PASS] vsix installed - ssh-remote-lite-0.0.6.vsix
+[PASS] extension listed in VS Code - .
+> ssh-remote-lite@0.0.6 test
+> npm run compile && node --test "out/test/*.test.js"
+> ssh-remote-lite@0.0.6 compile
+> tsc -p .
+TAP version 13
+# Subtest: parseAuthority: user@host:port
+ok 1 - parseAuthority: user@host:port
+  ---
+  duration_ms: 1.0782
+  type: 'test'
+  ...
+# Subtest: parseAuthority: 鐪佺暐绔彛榛樿 22
+ok 2 - parseAuthority: 鐪佺暐绔彛榛樿 22
+  ---
+  duration_ms: 0.3483
+  type: 'test'
+  ...
+# Subtest: parseAuthority: 鐪佺暐鐢ㄦ埛鍚?ok 3 - parseAuthority: 鐪佺暐鐢ㄦ埛鍚?  ---
+  duration_ms: 0.2288
+  type: 'test'
+  ...
+# Subtest: parseAuthority: 闈炴硶绔彛鍥為€€ 22
+ok 4 - parseAuthority: 闈炴硶绔彛鍥為€€ 22
+  ---
+  duration_ms: 0.3017
+  type: 'test'
+  ...
+# Subtest: makeAuthority: 缂虹渷鍊?ok 5 - makeAuthority: 缂虹渷鍊?  ---
+  duration_ms: 0.3456
+  type: 'test'
+  ...
+# Subtest: makeAuthority: 鍏ㄩ噺
+ok 6 - makeAuthority: 鍏ㄩ噺
+  ---
+  duration_ms: 0.1293
+  type: 'test'
+  ...
+# Subtest: expandHome: 灞曞紑 ~
+ok 7 - expandHome: 灞曞紑 ~
+  ---
+  duration_ms: 0.3078
+  type: 'test'
+  ...
+# Subtest: 瀵嗙爜璁よ瘉 + SFTP 鍏ㄦ祦绋?(mkdir/鍐?璇?鍒楃洰褰?缁熻/鏀瑰悕/鍒犻櫎)
+ok 8 - 瀵嗙爜璁よ瘉 + SFTP 鍏ㄦ祦绋?(mkdir/鍐?璇?鍒楃洰褰?缁熻/鏀瑰悕/鍒犻櫎)
+  ---
+  duration_ms: 50.8798
+  type: 'test'
+  ...
+# Subtest: 璇诲彇涓嶅瓨鍦ㄧ殑鏂囦欢搴旀姤閿?ok 9 - 璇诲彇涓嶅瓨鍦ㄧ殑鏂囦欢搴旀姤閿?  ---
+  duration_ms: 11.1592
+  type: 'test'
+  ...
+# Subtest: 閿欒瀵嗙爜搴旇鎷掔粷
+ok 10 - 閿欒瀵嗙爜搴旇鎷掔粷
+  ---
+  duration_ms: 7.2386
+  type: 'test'
+  ...
+# Subtest: shell 缁堢: 娆㈣繋璇?+ 杈撳叆鍥炴樉
+ok 11 - shell 缁堢: 娆㈣繋璇?+ 杈撳叆鍥炴樉
+  ---
+  duration_ms: 65.1974
+  type: 'test'
+  ...
+# Subtest: execCommand 鍦ㄨ繙绔墽琛屽苟杩斿洖閫€鍑虹爜
+ok 12 - execCommand 鍦ㄨ繙绔墽琛屽苟杩斿洖閫€鍑虹爜
+  ---
+  duration_ms: 11.0327
+  type: 'test'
+  ...
+# Subtest: buildAuthorizeKeyCommand 鐢?base64 浼犺緭鍏挜
+ok 13 - buildAuthorizeKeyCommand 鐢?base64 浼犺緭鍏挜
+  ---
+  duration_ms: 0.3938
+  type: 'test'
+  ...
+1..13
+# tests 13
+# suites 0
+# pass 13
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 381.0499
+[PASS] npm test (unit + ssh e2e, 13 cases)
+> ssh-remote-lite@0.0.6 it
+> node it/runTest.js
+node.exe : - Resolving version...
+所在位置 行:1 字符: 1
++ & "E:\hermes\node/node.exe" "E:\hermes\node/node_modules/npm/bin/npm- ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (- Resolving version...:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+鈭?Validated version: 1.139.0
+鈭?Found existing install in E:\0github\new-sync\ssh-remote-lite\.vscode-test\vscode-win32-x64-archive-1.139.0
+[main 2026-09-24T02:19:10.191Z] StorageMainService: creating application shared storage
+[main 2026-09-24T02:19:10.387Z] [shared storage] Creating shared storage database at ':memory:' (wasCreated: true)
+[main 2026-09-24T02:19:10.387Z] [shared storage] Initializing fallback application storage (path: in-memory)
+[main 2026-09-24T02:19:10.504Z] [shared storage] Fallback application storage initialized with 3 items
+[main 2026-09-24T02:19:10.505Z] update#setState disabled
+[main 2026-09-24T02:19:10.505Z] update#ctor - updates are disabled by the environment
+[RemoteAgentHost] Reconciling: desired=[], current=[]
+[AgentHost:renderer] Acquiring MessagePort to agent host...
+[main 2026-09-24T02:19:12.145Z] AgentHostProcessManager: agent host started
+[ChatModelSelection] event=no-model-at-toolbar-build surface="workbench" sessionKey=undefined conversationKey=undefined modelTarget=undefined storageKey="chat.currentLanguageModel.panel" widgetViewKind="view"
+[main 2026-09-24T02:19:12.850Z] [AgentHost:stderr] (node:139908) [DEP0169] DeprecationWarning: `url.parse()` behavior i
+s not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not is
+sued for `url.parse()` vulnerabilities.
+(Use `Code --trace-deprecation ...` to show where the warning was created)
+[ChatModelSelection] event=no-model-at-toolbar-build surface="workbench" sessionKey="local" conversationKey="vscode-chat-session://local/ZTdkN2Y5MmEtN2ZmZC00NWQwLTliMjItY2FkMTI2ZGFiZWZm" modelTarget=undefined storageKey="chat.currentLanguageModel.panel" widgetViewKind="view"
+[AgentHost:renderer] MessagePort acquired, creating client...
+[AgentHost:renderer] Protocol connection established; clientId=01020cee-5fde-4016-b43c-2c664a10a933
+Started local extension host with pid 127992.
+Loading development extension at e:\0github\new-sync\ssh-remote-lite
+Unknown channel: agentHostClientByokLm
+Unknown channel: agentHostClientProxy
+Unknown channel: agentHostClientProxy
+[AccountPolicyGate] apply: state=inactive, reason=undefined, isRestricted=false
+[AgentHost] No signed-in session resolved for resource: https://api.github.com
+[AgentHost] No signed-in session resolved for resource: https://api.github.com/repos
+[AgentHost] No signed-in session resolved for resource: https://api.github.com
+[AgentHost] No signed-in session resolved for resource: https://api.github.com/repos
+ReferenceError: describe is not defined
+	at Object.<anonymous> (e:\0github\new-sync\ssh-remote-lite\it\suite.js:13:1)
+	at Module._compile (node:internal/modules/cjs/loader:1937:14)
+	at Object..js (node:internal/modules/cjs/loader:2070:10)
+	at Module.load (node:internal/modules/cjs/loader:1658:32)
+	at node:internal/modules/cjs/loader:1450:12
+	at Module.<anonymous> (node:electron/js2c/node_init:2:18263)
+	at i._load (file:///e:/0github/new-sync/ssh-remote-lite/.vscode-test/vscode-win32-x64-archive-1.139.0/2242ebbb54/resou
+rces/app/out/vs/workbench/api/node/extensionHostProcess.js:473:6673)
+	at n._load (file:///e:/0github/new-sync/ssh-remote-lite/.vscode-test/vscode-win32-x64-archive-1.139.0/2242ebbb54/resou
+rces/app/out/vs/workbench/api/node/extensionHostProcess.js:304:29701)
+	at n._load (file:///e:/0github/new-sync/ssh-remote-lite/.vscode-test/vscode-win32-x64-archive-1.139.0/2242ebbb54/resou
+rces/app/out/vs/workbench/api/node/extensionHostProcess.js:296:26830)
+	at wrapModuleLoad (node:internal/modules/cjs/loader:268:19)
+	at Module.require (node:internal/modules/cjs/loader:1681:12)
+	at require (node:internal/modules/helpers:157:16)
+	at t_._doLoadModule (file:///e:/0github/new-sync/ssh-remote-lite/.vscode-test/vscode-win32-x64-archive-1.139.0/2242ebb
+b54/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:307:1487)
+	at t_._loadCommonJSModule (file:///e:/0github/new-sync/ssh-remote-lite/.vscode-test/vscode-win32-x64-archive-1.139.0/2
+242ebbb54/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:307:1630)
+	at t_._doHandleExtensionTests (file:///e:/0github/new-sync/ssh-remote-lite/.vscode-test/vscode-win32-x64-archive-1.139
+.0/2242ebbb54/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:168:21789)
+	at async t_.$extensionTestsExecute (file:///e:/0github/new-sync/ssh-remote-lite/.vscode-test/vscode-win32-x64-archive-
+1.139.0/2242ebbb54/resources/app/out/vs/workbench/api/node/extensionHostProcess.js:168:21420)
+[main 2026-09-24T02:19:16.487Z] Extension host with pid 127992 exited with code: 0, signal: unknown.
+Exit code:   1
+[IT] integration tests failed: TestRunFailedError: Test run failed with code 1
+    at ChildProcess.onProcessClosed (E:\0github\new-sync\ssh-remote-lite\node_modules\@vscode\test-electron\out\runTest
+.js:110:24)
+    at ChildProcess.emit (node:events:519:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:293:12) {
+  code: 1,
+  signal: undefined
+}
+[FAIL] npm run it (real VS Code activates ext + SSH terminal opens and stays alive)
+== LOCAL CHECK: FAILURES PRESENT ==
+--- stderr ---
+ConvertFrom-Json : 传入的对象无效，应为“:”或“}”。 (242): {
+  "name": "ssh-remote-lite",
+  "displayName": "SSH Remote Lite",
+  "description": "杞婚噺绾?SSH 杩滅▼寮€鍙?涓嶄緷璧栬繙绔?vscode-server,鐢?ssh:// 鏂囦欢绯荤粺娴忚/缂栬緫杩滅鏂囦欢
+ + 浜や簰寮?SSH 缁堢銆傞€傜敤浜庤窇涓嶄簡鏂扮増 vscode-server 鐨勮€佹湇鍔″櫒(CentOS 7 / glibc < 2.28 绛?銆?,
+  "version": "0.0.6",
+  "publisher": "shaohuawen03",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onFileSystem:ssh"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "sshRemoteLite.connect",
+        "title": "SSH Remote Lite: 杩炴帴鍒颁富鏈?.."
+      },
+      {
+        "command": "sshRemoteLite.openTerminal",
+        "title": "SSH Remote Lite: 鏂板缓 SSH 缁堢"
+      },
+      {
+        "command": "sshRemoteLite.setDefaultTerminal",
+        "title": "SSH Remote Lite: 鎶?SSH 璁句负榛樿缁堢 (Agent 鍛戒护璺戝湪杩滅)"
+      },
+      {
+        "command": "sshRemoteLite.uploadPublicKey",
+        "title": "SSH Remote Lite: 閮ㄧ讲鍏嶅瘑鐧诲綍 (涓婁紶鏈満鍏挜)"
+      }
+    ],
+    "configuration": {
+      "title": "SSH Remote Lite",
+      "properties": {
+        "sshRemoteLite.hosts": {
+          "type": "array",
+          "default": [],
+          "description": "棰勯厤缃富鏈哄垪琛ㄣ€備緥: [{ \"name\": \"old-box\", \"host\": \"10.0.0.5\", \"port\": 22, 
+\"username\": \"root\", \"password\": \"xxx\", \"privateKeyPath\": \"~/.ssh/id_rsa\" }]",
+          "items": {
+            "type": "object"
+          }
+        },
+        "sshRemoteLite.autoOpenTerminal": {
+          "type": "boolean",
+          "default": true,
+          "description": "鎵撳紑 ssh:// 杩滅▼宸ヤ綔鍖烘椂鑷姩寮€涓€涓?SSH 缁堢(缁堢闈㈡澘 + 鍙锋柊寤虹殑浠嶆槸鏈
+湴缁堢,灞?IDE 鏈韩琛屼负)"
+        },
+        "sshRemoteLite.sshPath": {
+          "type": "string",
+          "default": "",
+          "description": "鑷畾涔?ssh 鍙墽琛屾枃浠惰矾寰?榛樿鑷姩鏌ユ壘绯荤粺 ssh / Windows OpenSSH)"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p .",
+    "watch": "tsc -w -p .",
+    "test": "npm run compile && node --test \"out/test/*.test.js\"",
+    "it": "node it/runTest.js"
+  },
+  "dependencies": {
+    "ssh2": "^1.16.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.43",
+    "@types/ssh2": "^1.15.6",
+    "@types/vscode": "~1.75.0",
+    "typescript": "^5.4.0",
+    "@vscode/test-electron": "^2.4.1",
+    "mocha": "^10.4.0"
+  }
+}
+所在位置 E:\0github\new-sync\code\local_check.ps1:57 字符: 62
++ ...  = Get-Content 'ssh-remote-lite\package.json' -Raw | ConvertFrom-Json
++                                                          ~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:) [ConvertFrom-Json], ArgumentException
+    + FullyQualifiedErrorId : System.ArgumentException,Microsoft.PowerShell.Commands.ConvertFromJsonCommand
