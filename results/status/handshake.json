@@ -1,9 +1,9 @@
 {
-  "round": 11,
-  "arena_state": "awaiting_check",
-  "local_state": "pending",
-  "arena_updated": "2026-09-24 07:02:27",
-  "local_updated": null,
-  "host": "",
-  "note": "round 11: write the plain terminal profile into VS Code settings for the user + full diagnostics (server was TCP-timeout in round 10)"
+    "round":  11,
+    "arena_state":  "awaiting_check",
+    "local_state":  "failed",
+    "arena_updated":  "2026-09-24 07:02:27",
+    "local_updated":  "2026-09-24 15:07:30",
+    "host":  "LAPTOP-R77M5D6M",
+    "note":  "round 11: write the plain terminal profile into VS Code settings for the user + full diagnostics (server was TCP-timeout in round 10)"
 }
