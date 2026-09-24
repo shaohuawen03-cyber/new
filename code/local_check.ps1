@@ -126,9 +126,22 @@ if (Test-Path -LiteralPath $targetFile) {
     $sshTarget = (Get-Content -LiteralPath $targetFile -Raw).Trim()
     if ($sshTarget) {
         Write-Output ('[..] writing the terminal profile for ' + $sshTarget)
+        # The password never lives in this repo. If the user dropped it into
+        # %USERPROFILE%\.srl_password (one line, local only), the round can
+        # also install the key and make the login passwordless; without it we
+        # just write a profile that asks for the password in the terminal.
+        $pwFile = Join-Path $env:USERPROFILE '.srl_password'
+        $setupArgs = @('-Target', $sshTarget)
+        $havePw = $false
+        if (Test-Path -LiteralPath $pwFile) {
+            $pw = ([System.IO.File]::ReadAllText($pwFile)).Trim()
+            if ($pw) { $setupArgs += @('-Password', $pw); $havePw = $true }
+        }
+        if (-not $havePw) { $setupArgs += '-NoKey' }
+        Write-Output ('   password file present: ' + $havePw)
         # in-process on purpose: a child powershell running console-less gave
         # back zero output in round 11
-        & (Join-Path $PSScriptRoot 'setup_terminal.ps1') -Target $sshTarget -NoKey 2>&1 |
+        & (Join-Path $PSScriptRoot 'setup_terminal.ps1') @setupArgs 2>&1 |
             ForEach-Object { Write-Output ('   ' + $_) }
         Write-Output ('   setup_terminal exit: ' + $LASTEXITCODE)
         $vsSettings = Join-Path $env:APPDATA 'Code\User\settings.json'
@@ -138,6 +151,36 @@ if (Test-Path -LiteralPath $targetFile) {
             $okProfile = ($txt -like '*SSH Remote Lite (*') -and ($txt -like '*defaultProfile.windows*')
         }
         Mark $okProfile 'terminal profile written into VS Code settings.json'
+    }
+}
+
+# ---- 8b. the real server: is it reachable, and does the terminal command line
+#          actually get a shell there?
+$realHost = '10.10.5.210'
+$realExe = 'C:\Windows\System32\OpenSSH\ssh.exe'
+if (-not (Test-Path -LiteralPath $realExe)) {
+    $rc = Get-Command ssh -ErrorAction SilentlyContinue
+    if ($rc) { $realExe = [string]$rc.Source }
+}
+$tcpOk = $false
+try {
+    $tn = Test-NetConnection -ComputerName $realHost -Port 22 -WarningAction SilentlyContinue
+    $tcpOk = [bool]$tn.TcpTestSucceeded
+} catch { $tcpOk = $false }
+if (-not $tcpOk) {
+    Write-Output ("[SKIP] " + $realHost + ":22 is not reachable from here (VPN/LAN down) - real-server checks skipped")
+} else {
+    Mark $true ("tcp " + $realHost + ":22 reachable")
+    $probe = & $realExe '-o' 'BatchMode=yes' '-o' 'StrictHostKeyChecking=accept-new' '-o' 'ConnectTimeout=12' $realHost 'echo SRL_REMOTE_OK; uname -a; whoami' 2>&1 | Out-String
+    $probeOk = ($probe -match 'SRL_REMOTE_OK')
+    if ($probeOk) {
+        Mark $true 'passwordless login to the real server works'
+        ($probe -split "`r?`n" | Where-Object { $_ -match '\S' }) | ForEach-Object { Write-Output ('   ' + $_) }
+    } elseif ($havePw) {
+        Mark $false 'passwordless login to the real server' (($probe -split "`r?`n" | Where-Object { $_ -match '\S' } | Select-Object -Last 3) -join ' | ')
+    } else {
+        Write-Output '[SKIP] no passwordless login yet (no password file) - the terminal will ask for the password'
+        ($probe -split "`r?`n" | Where-Object { $_ -match '\S' } | Select-Object -Last 3) | ForEach-Object { Write-Output ('   ' + $_) }
     }
 }
 
