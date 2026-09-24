@@ -112,6 +112,19 @@ if ($nodeCmd) {
     }
     npm test 2>&1 | Out-String | Write-Output
     Mark ($LASTEXITCODE -eq 0) 'npm test (unit + e2e + ssh CLI + autologin + keyboard-interactive + profile contract, 28 cases)'
+    # housekeeping: drop VS Code test builds that are not the pinned version
+    # (a "latest" download from an earlier run costs ~400 MB and is not the
+    # IDE we test against - user asked how to get rid of 1.139)
+    $keepVer = if ($env:SRL_VSCODE_VERSION) { $env:SRL_VSCODE_VERSION } else { '1.85.2' }
+    $testRoot = Join-Path (Get-Location) '.vscode-test'
+    if (Test-Path -LiteralPath $testRoot) {
+        Get-ChildItem -LiteralPath $testRoot -Directory -Filter 'vscode-*' -ErrorAction SilentlyContinue |
+            Where-Object { $_.Name -notlike ("*" + $keepVer + "*") } |
+            ForEach-Object {
+                Write-Output ('[..] removing stale VS Code test build: ' + $_.Name)
+                Remove-Item -LiteralPath $_.FullName -Recurse -Force -ErrorAction SilentlyContinue
+            }
+    }
     npm run it 2>&1 | Out-String | Write-Output
     Mark ($LASTEXITCODE -eq 0) 'npm run it (real VS Code activates ext + SSH terminal opens and stays alive)'
     # the same suite against the PACKAGED extension: development mode can never
