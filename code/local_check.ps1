@@ -119,6 +119,67 @@ if ($nodeCmd) {
     Mark $false 'node.js found' 'install Node LTS from nodejs.org, or: conda install -c conda-forge nodejs'
 }
 
+# ---- 9. diagnostics (never fails the round - it only reports the real state)
+Write-Output ''
+Write-Output '===== DIAGNOSTICS ====='
+function Redact([string]$text) {
+    if (-not $text) { return '' }
+    $t = $text -replace '("password"\s*:\s*")[^"]*(")', '$1<redacted>$2'
+    $t = $t -replace '("passphrase"\s*:\s*")[^"]*(")', '$1<redacted>$2'
+    return $t
+}
+$settingsPaths = @(
+    (Join-Path $env:APPDATA 'Code\User\settings.json'),
+    (Join-Path $env:APPDATA 'Antigravity\User\settings.json'),
+    (Join-Path $env:APPDATA 'Code - Insiders\User\settings.json')
+)
+foreach ($sp in $settingsPaths) {
+    if (Test-Path -LiteralPath $sp) {
+        Write-Output ("--- settings: " + $sp)
+        $raw = [System.IO.File]::ReadAllText($sp, (New-Object System.Text.UTF8Encoding($false)))
+        $keep = @()
+        foreach ($ln in ($raw -split "`r?`n")) {
+            if ($ln -match 'sshRemoteLite|terminal\.integrated|SSH Remote Lite|defaultProfile|profiles\.|"path"|"args"|ssh\.exe|10\.10\.5\.210|-i"|IdentitiesOnly|StrictHostKey') {
+                $keep += (Redact $ln)
+            }
+        }
+        if ($keep.Count -eq 0) { Write-Output '   (no ssh/terminal related lines)' }
+        else { $keep | ForEach-Object { Write-Output ('   ' + $_) } }
+    } else {
+        Write-Output ("--- settings MISSING: " + $sp)
+    }
+}
+Write-Output '--- ~/.ssh'
+$sshHome = Join-Path $env:USERPROFILE '.ssh'
+if (Test-Path -LiteralPath $sshHome) {
+    Get-ChildItem -LiteralPath $sshHome -Force | ForEach-Object { Write-Output ('   ' + $_.Name + '  ' + $_.Length + ' bytes') }
+} else {
+    Write-Output '   (no .ssh directory)'
+}
+Write-Output '--- ssh client'
+$sshExe = 'C:\Windows\System32\OpenSSH\ssh.exe'
+if (-not (Test-Path -LiteralPath $sshExe)) {
+    $c = Get-Command ssh -ErrorAction SilentlyContinue
+    if ($c) { $sshExe = $c.Source }
+}
+Write-Output ('   exe: ' + $sshExe + '  exists=' + (Test-Path -LiteralPath $sshExe))
+if (Test-Path -LiteralPath $sshExe) {
+    & $sshExe -V 2>&1 | ForEach-Object { Write-Output ('   ' + $_) }
+    Write-Output '--- reachability of the real server (no password is sent; batch mode)'
+    $target = '25wenshaohua@10.10.5.210'
+    $out = & $sshExe '-v' '-o' 'BatchMode=yes' '-o' 'StrictHostKeyChecking=accept-new' '-o' 'ConnectTimeout=8' '-o' 'NumberOfPasswordPrompts=0' $target 'echo SRL_OK' 2>&1 | Out-String
+    ($out -split "`r?`n" | Where-Object { $_ -match '\S' } | Select-Object -Last 22) | ForEach-Object { Write-Output ('   ' + $_) }
+}
+Write-Output '--- IDE versions'
+if ($codeCmd) { & $codeCmd --version 2>&1 | Select-Object -First 1 | ForEach-Object { Write-Output ('   VS Code ' + $_) } }
+foreach ($p in @(
+    "$env:LOCALAPPDATA\Programs\Antigravity\bin\antigravity.cmd",
+    "$env:LOCALAPPDATA\Programs\Antigravity\Antigravity.exe",
+    "$env:PROGRAMFILES\Antigravity\bin\antigravity.cmd")) {
+    Write-Output ('   antigravity candidate: ' + $p + '  exists=' + (Test-Path -LiteralPath $p))
+}
+Write-Output '===== END DIAGNOSTICS ====='
+
 if ($fail -eq 0) {
     Write-Output '== LOCAL CHECK: ALL PASSED =='
 } else {
