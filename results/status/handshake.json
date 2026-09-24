@@ -1,9 +1,9 @@
 {
-  "round": 9,
-  "arena_state": "awaiting_check",
-  "local_state": "pending",
-  "arena_updated": "2026-09-24 03:03:23",
-  "local_updated": null,
-  "host": "",
-  "note": "round 9: v0.0.8 static settings profile + Antigravity install"
+    "round":  9,
+    "arena_state":  "awaiting_check",
+    "local_state":  "passed",
+    "arena_updated":  "2026-09-24 03:03:23",
+    "local_updated":  "2026-09-24 11:06:28",
+    "host":  "LAPTOP-R77M5D6M",
+    "note":  "round 9: v0.0.8 static settings profile + Antigravity install"
 }
