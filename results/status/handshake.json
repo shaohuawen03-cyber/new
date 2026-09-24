@@ -1,9 +1,9 @@
 {
-    "round":  8,
-    "arena_state":  "awaiting_check",
-    "local_state":  "passed",
-    "arena_updated":  "2026-09-24 02:54:18",
-    "local_updated":  "2026-09-24 10:57:01",
-    "host":  "LAPTOP-R77M5D6M",
-    "note":  "round 8: v0.0.7 - contributed terminal profile + default profile switch + password-\u003epasswordless auto setup"
+  "round": 8,
+  "arena_state": "accepted",
+  "local_state": "passed",
+  "arena_updated": "2026-09-24 02:57:36",
+  "local_updated": "2026-09-24 10:57:01",
+  "host": "LAPTOP-R77M5D6M",
+  "note": "round 8: v0.0.7 - contributed terminal profile + default profile switch + password->passwordless auto setup"
 }
