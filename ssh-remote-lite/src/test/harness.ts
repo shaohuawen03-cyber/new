@@ -252,7 +252,9 @@ export interface TestServer {
 export function startTestServer(
   user = 'testuser',
   password = 'testpass',
-  authorizedPubKey?: string
+  authorizedPubKey?: string,
+  /** 只接受 keyboard-interactive(PAM) —— 很多 CentOS 服务器就是这样 */
+  keyboardInteractiveOnly = false
 ): Promise<TestServer> {
   const keys = utils.generateKeyPairSync('ed25519');
   const mem = new MemFs();
@@ -267,6 +269,23 @@ export function startTestServer(
   const server = new Server({ hostKeys: [keys.private] }, (client) => {
     client.on('authentication', (ctx) => {
       try {
+        if (keyboardInteractiveOnly) {
+          // 服务器只认 keyboard-interactive: password 方法一律拒绝
+          if (ctx.method === 'keyboard-interactive' && ctx.username === user) {
+            return (ctx as any).prompt(
+              [{ prompt: 'Password: ', echo: false }],
+              (answers: string[]) => {
+                if (answers && answers[0] === password) {
+                  return ctx.accept();
+                }
+                return ctx.reject();
+              }
+            );
+          }
+          if (ctx.method === 'password') {
+            return ctx.reject(['keyboard-interactive']);
+          }
+        }
         if (ctx.method === 'password' && ctx.username === user && ctx.password === password) {
           return ctx.accept();
         }

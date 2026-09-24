@@ -9,6 +9,7 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import { ensureLocalKeyPair } from '../keys';
 import { ensurePasswordlessLogin } from '../autologin';
+import { connectWithConfig, execCommand } from '../core';
 import { startTestServer, TestServer } from './harness';
 
 let srv: TestServer;
@@ -92,4 +93,39 @@ test('没有密码也没有私钥时不报错, 只是不部署', async () => {
   );
   assert.equal(res.deployed, false);
   assert.ok(res.error, '应该给出原因');
+});
+
+test('服务器只给 keyboard-interactive(PAM) 时, 同一个密码也能登录', async () => {
+  // 用户实测: 老 CentOS 上 "密码不对" —— 其实是 ssh2 只发了 password 方法,
+  // 服务器把密码登录放在 keyboard-interactive 里, 于是被拒。
+  const kiSrv = await startTestServer('testuser', 'testpass', undefined, true);
+  try {
+    const client = await connectWithConfig({
+      host: '127.0.0.1',
+      port: kiSrv.port,
+      username: 'testuser',
+      password: 'testpass',
+    });
+    const r = await execCommand(client, 'echo KI_OK');
+    assert.equal(r.code, 0);
+    client.end();
+  } finally {
+    await kiSrv.close();
+  }
+});
+
+test('keyboard-interactive 下错密码仍然失败', async () => {
+  const kiSrv = await startTestServer('testuser', 'testpass', undefined, true);
+  try {
+    await assert.rejects(
+      connectWithConfig({
+        host: '127.0.0.1',
+        port: kiSrv.port,
+        username: 'testuser',
+        password: 'WRONG',
+      })
+    );
+  } finally {
+    await kiSrv.close();
+  }
 });

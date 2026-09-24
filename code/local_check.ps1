@@ -111,9 +111,13 @@ if ($nodeCmd) {
         npm install --no-audit --no-fund 2>&1 | Out-String | Write-Output
     }
     npm test 2>&1 | Out-String | Write-Output
-    Mark ($LASTEXITCODE -eq 0) 'npm test (unit + e2e + ssh CLI + autologin + profile contract, 26 cases)'
+    Mark ($LASTEXITCODE -eq 0) 'npm test (unit + e2e + ssh CLI + autologin + keyboard-interactive + profile contract, 28 cases)'
     npm run it 2>&1 | Out-String | Write-Output
     Mark ($LASTEXITCODE -eq 0) 'npm run it (real VS Code activates ext + SSH terminal opens and stays alive)'
+    # the same suite against the PACKAGED extension: development mode can never
+    # reproduce "file system provider for ssh:// is not available"
+    npm run it:installed 2>&1 | Out-String | Write-Output
+    Mark ($LASTEXITCODE -eq 0) 'npm run it:installed (the .vsix itself activates, ssh:// FS + terminal work)'
     Pop-Location
 } else {
     Mark $false 'node.js found' 'install Node LTS from nodejs.org, or: conda install -c conda-forge nodejs'
@@ -238,6 +242,40 @@ if (Test-Path -LiteralPath $sshHome) {
     Get-ChildItem -LiteralPath $sshHome -Force | ForEach-Object { Write-Output ('   ' + $_.Name + '  ' + $_.Length + ' bytes') }
 } else {
     Write-Output '   (no .ssh directory)'
+}
+Write-Output '--- installed extension folder'
+$extRoot = Join-Path $env:USERPROFILE '.vscode\extensions'
+if (Test-Path -LiteralPath $extRoot) {
+    Get-ChildItem -LiteralPath $extRoot -Directory -Filter '*ssh-remote-lite*' -ErrorAction SilentlyContinue |
+        ForEach-Object {
+            Write-Output ('   ' + $_.Name)
+            foreach ($need in @('package.json', 'out\extension.js', 'node_modules\ssh2\package.json')) {
+                $f = Join-Path $_.FullName $need
+                Write-Output ('      ' + $need + ' exists=' + (Test-Path -LiteralPath $f))
+            }
+        }
+} else {
+    Write-Output '   (no ~/.vscode/extensions)'
+}
+Write-Output '--- extension host log (ssh-remote-lite / activation errors)'
+$logRoot = Join-Path $env:APPDATA 'Code\logs'
+if (Test-Path -LiteralPath $logRoot) {
+    $recent = Get-ChildItem -LiteralPath $logRoot -Directory -ErrorAction SilentlyContinue |
+        Sort-Object LastWriteTime -Descending | Select-Object -First 2
+    foreach ($d in $recent) {
+        Get-ChildItem -LiteralPath $d.FullName -Recurse -Filter 'exthost.log' -ErrorAction SilentlyContinue |
+            Select-Object -First 4 |
+            ForEach-Object {
+                $hits = Select-String -LiteralPath $_.FullName -Pattern 'ssh-remote-lite|Activating extension|activationEvent|Error: |ERR ' -ErrorAction SilentlyContinue |
+                    Select-Object -Last 12
+                if ($hits) {
+                    Write-Output ('   ' + $_.FullName)
+                    $hits | ForEach-Object { Write-Output ('      ' + $_.Line) }
+                }
+            }
+    }
+} else {
+    Write-Output '   (no Code logs dir)'
 }
 Write-Output '--- ~/.ssh/config (host blocks only)'
 $sshCfg = Join-Path $env:USERPROFILE '.ssh\config'

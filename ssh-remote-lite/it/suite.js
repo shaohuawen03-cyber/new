@@ -314,6 +314,29 @@ async function run() {
       }
     });
 
+    await withCase('the ssh:// file system provider is registered and works', async () => {
+      // 用户实测报错: "ssh://... 的文件系统提供程序不可用" —— 只有把
+      // **安装后的** 插件跑起来才能复现(开发模式下总是好的), 所以这条用例
+      // 在 npm run it:installed 里价值最大。
+      const conf = vscode.workspace.getConfiguration('sshRemoteLite');
+      await conf.update(
+        'hosts',
+        [{ host: '127.0.0.1', port: server.port, username: 'testuser', password: 'testpass' }],
+        vscode.ConfigurationTarget.Global
+      );
+      const base = `ssh://testuser@127.0.0.1:${server.port}`;
+      const file = vscode.Uri.parse(`${base}/it_probe.txt`);
+      await vscode.workspace.fs.writeFile(file, Buffer.from('hello-it'));
+      const back = await vscode.workspace.fs.readFile(file);
+      assert.strictEqual(Buffer.from(back).toString(), 'hello-it');
+      const entries = await vscode.workspace.fs.readDirectory(vscode.Uri.parse(`${base}/`));
+      assert.ok(
+        entries.some(([n]) => n === 'it_probe.txt'),
+        `the remote directory listing has no it_probe.txt: ${JSON.stringify(entries)}`
+      );
+      await vscode.workspace.fs.delete(file);
+    });
+
     log('all integration cases passed');
   } finally {
     try {

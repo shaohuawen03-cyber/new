@@ -47,15 +47,44 @@ export function buildConnectConfig(cfg: HostConfig): ConnectConfig {
     host: cfg.host,
     port: cfg.port ?? 22,
     username: cfg.username ?? 'root',
-    readyTimeout: 15000,
+    readyTimeout: 20000,
     keepaliveInterval: 20000,
-  };
+    // 老服务器(CentOS 7 / OpenSSH 7.4 及更早)常常只给这些算法,
+    // ssh2 的默认列表已经把它们摘掉了 -> 握手直接失败
+    algorithms: {
+      serverHostKey: [
+        'ssh-ed25519',
+        'ecdsa-sha2-nistp256',
+        'ecdsa-sha2-nistp384',
+        'ecdsa-sha2-nistp521',
+        'rsa-sha2-512',
+        'rsa-sha2-256',
+        'ssh-rsa',
+      ],
+      kex: [
+        'curve25519-sha256',
+        'curve25519-sha256@libssh.org',
+        'ecdh-sha2-nistp256',
+        'ecdh-sha2-nistp384',
+        'ecdh-sha2-nistp521',
+        'diffie-hellman-group-exchange-sha256',
+        'diffie-hellman-group14-sha256',
+        'diffie-hellman-group16-sha512',
+        'diffie-hellman-group14-sha1',
+      ],
+    },
+    // 很多服务器把密码登录放在 keyboard-interactive 里(PAM),
+    // 只发 password 会被拒 -> 用户看到"密码不对"(实测 2026-09-24)
+    tryKeyboard: true,
+  } as ConnectConfig;
   if (cfg.privateKeyPath) {
     connectCfg.privateKey = fs.readFileSync(expandHome(cfg.privateKeyPath));
     if (cfg.passphrase) {
       connectCfg.passphrase = cfg.passphrase;
     }
-  } else if (cfg.password) {
+  }
+  if (cfg.password) {
+    // 两个都给: 私钥不被接受时还能退回密码
     connectCfg.password = cfg.password;
   }
   return connectCfg;
@@ -76,6 +105,23 @@ export function connectWithConfig(cfg: HostConfig): Promise<Client> {
       settled = true;
       resolve(client);
     });
+    // PAM/keyboard-interactive: 服务器逐条问, 我们用同一个密码回答
+    (client as unknown as NodeJS.EventEmitter).on(
+      'keyboard-interactive',
+      (
+        _name: string,
+        _instructions: string,
+        _lang: string,
+        prompts: Array<{ prompt: string; echo: boolean }>,
+        finish: (answers: string[]) => void
+      ) => {
+        if (!cfg.password) {
+          finish([]);
+          return;
+        }
+        finish(prompts.map(() => cfg.password as string));
+      }
+    );
     client.connect(buildConnectConfig(cfg));
   });
 }

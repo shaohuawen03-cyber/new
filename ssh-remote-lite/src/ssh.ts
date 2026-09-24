@@ -1,5 +1,8 @@
 import * as vscode from 'vscode';
 import { Client, SFTPWrapper } from 'ssh2';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
 import { HostConfig, parseAuthority, connectWithConfig, startSftp } from './core';
 
 export { call, makeAuthority } from './core';
@@ -49,14 +52,33 @@ export async function getConnection(authority: string): Promise<Client> {
     return existing.client;
   }
   const cfg = resolveConfig(authority);
-  if (!cfg.password && !cfg.privateKeyPath) {
+  // 先试本机已有的私钥(很多人 ~/.ssh/config 早就配好了免密, 例如
+  // IdentityFile ~/.ssh/id_ed25519) —— 能免密就绝不该弹密码框
+  let client: Client | undefined;
+  if (!cfg.privateKeyPath) {
+    for (const name of ['id_ed25519', 'id_rsa', 'id_ecdsa']) {
+      const p = path.join(os.homedir(), '.ssh', name);
+      if (!fs.existsSync(p)) {
+        continue;
+      }
+      try {
+        client = await connectWithConfig({ ...cfg, privateKeyPath: p });
+        break;
+      } catch {
+        /* 这把钥匙不行, 试下一把 */
+      }
+    }
+  }
+  if (!client && !cfg.password && !cfg.privateKeyPath) {
     const pw = await promptPassword(cfg);
     if (!pw) {
       throw new Error('未提供密码/私钥,已取消连接');
     }
     cfg.password = pw;
   }
-  const client = await connectWithConfig(cfg);
+  if (!client) {
+    client = await connectWithConfig(cfg);
+  }
   const managed: ManagedConnection = { client, sftp: null, refCount: 0 };
   connections.set(authority, managed);
   client.once('close', () => {
