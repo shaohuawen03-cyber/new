@@ -32,14 +32,33 @@ const {
     const exe = await downloadAndUnzipVSCode();
     const [cli, ...cliArgs] = resolveCliArgsFromVSCodeExecutablePath(exe);
     console.log(`[IT-installed] installing ${vsix} into ${extDir}`);
-    const install = cp.spawnSync(
-      cli,
-      [...cliArgs, '--extensions-dir', extDir, '--user-data-dir', userDir, '--install-extension', path.join(root, vsix), '--force'],
-      { encoding: 'utf8', stdio: 'pipe' }
-    );
-    console.log((install.stdout || '').trim());
+    const installArgs = [
+      ...cliArgs,
+      '--extensions-dir',
+      extDir,
+      '--user-data-dir',
+      userDir,
+      '--install-extension',
+      path.join(root, vsix),
+      '--force',
+    ];
+    // Windows: the CLI is a .cmd/.bat and node >= 20 refuses to spawn those
+    // without a shell (round 18 failed with status!=0 and no output at all)
+    const install = cp.spawnSync(cli, installArgs, {
+      encoding: 'utf8',
+      stdio: 'pipe',
+      shell: process.platform === 'win32',
+      windowsHide: true,
+    });
+    if (install.stdout) {
+      console.log(install.stdout.trim());
+    }
     if (install.status !== 0) {
-      throw new Error(`installing the vsix failed: ${install.stderr || install.stdout}`);
+      throw new Error(
+        `installing the vsix failed (status=${install.status}, error=${
+          install.error ? install.error.message : 'none'
+        }): ${install.stderr || install.stdout || '<no output>'}`
+      );
     }
     await runTests({
       vscodeExecutablePath: exe,

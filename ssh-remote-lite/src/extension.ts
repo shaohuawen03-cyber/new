@@ -17,6 +17,7 @@ import {
   getConfigForAuthority,
   getConnection,
   makeAuthority,
+  closeAllConnections,
   HostConfig,
 } from './ssh';
 import { execCommand, buildAuthorizeKeyCommand } from './core';
@@ -182,6 +183,14 @@ export function activate(context: vscode.ExtensionContext): void {
       }
       await vscode.commands.executeCommand('sshRemoteLite.setDefaultTerminal');
       await openSshTerminal(res.cfg);
+    })
+  );
+
+  // 隐藏命令(集成测试用): 关掉所有 SSH 连接
+  context.subscriptions.push(
+    vscode.commands.registerCommand('sshRemoteLite._closeAll', () => {
+      closeAllConnections();
+      return true;
     })
   );
 

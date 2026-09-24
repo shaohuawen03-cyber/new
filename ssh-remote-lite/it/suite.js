@@ -335,6 +335,11 @@ async function run() {
         `the remote directory listing has no it_probe.txt: ${JSON.stringify(entries)}`
       );
       await vscode.workspace.fs.delete(file);
+      // leave nothing behind: an open SFTP connection (and a hosts entry
+      // pointing at a server that is about to die) made VS Code itself exit
+      // with code 1 even though every case had passed - round 18
+      await vscode.commands.executeCommand('sshRemoteLite._closeAll');
+      await conf.update('hosts', undefined, vscode.ConfigurationTarget.Global);
     });
 
     log('all integration cases passed');
@@ -343,6 +348,11 @@ async function run() {
       if (term) {
         term.dispose();
       }
+    } catch (e) {
+      /* ignore */
+    }
+    try {
+      await vscode.commands.executeCommand('sshRemoteLite._closeAll');
     } catch (e) {
       /* ignore */
     }

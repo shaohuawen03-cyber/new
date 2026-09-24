@@ -126,3 +126,15 @@ export function releaseConnection(authority: string): void {
 export function getConfigForAuthority(authority: string): HostConfig {
   return resolveConfig(authority);
 }
+
+/** 关掉所有池化连接(集成测试收尾用: 留着的连接会让宿主退出码变成 1) */
+export function closeAllConnections(): void {
+  for (const [authority, managed] of Array.from(connections.entries())) {
+    try {
+      managed.client.end();
+    } catch {
+      /* ignore */
+    }
+    connections.delete(authority);
+  }
+}
