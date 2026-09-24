@@ -41,6 +41,9 @@
 #     .\auth.ps1 -Account <login>     # pin THIS clone to one gh account; other
 #                                     #   clones keep the machine default
 #     .\auth.ps1 -Unpin               # drop the pin (machine default again)
+#   A 403 during -Setup / -Verify is now REPAIRED AUTOMATICALLY: if any gh
+#   login on this machine can write to the repo, this clone is pinned to it
+#   and the push probe runs again (-NoAutoFix turns that off).
 #
 # Nothing here ever prints the token. Exit codes: 0 ready / verified, 1 not ready.
 # ASCII-only on purpose (Windows PowerShell 5.1 decodes .ps1 as ANSI/GBK).
@@ -65,6 +68,7 @@ param(
     [switch]$Accounts,
     [string]$Account = '',
     [switch]$Unpin,
+    [switch]$NoAutoFix,
     [string]$Config = '',
     [string]$Remote = ''
 )
@@ -417,6 +421,73 @@ function Reset-LocalHelperList {
     return ''
 }
 
+function Find-PushAccount {
+    # the gh login on this machine that can actually WRITE to this repo
+    # ('' when none / gh missing). This is what turns a 403 into a fix.
+    if (-not $ghVer) { return '' }
+    foreach ($a in (Get-GhAccountInfo)) {
+        if ((Test-AccountPush $a.name) -eq 'yes') { return $a.name }
+    }
+    return ''
+}
+
+function Set-AccountPin {
+    # write the per-clone pin for one gh login. Returns $true on success.
+    # Used by -Account AND by the automatic 403 repair in the verify block.
+    param([string]$Account)
+    if (-not $ghVer) {
+        Bad 'gh is not installed - install it (winget install GitHub.cli), or store a PAT with -Setup -PromptToken'
+        return $false
+    }
+    if (-not (Test-GhAccount $Account)) {
+        Bad "gh has no usable account '$Account' (not logged in, or no token)"
+        Note 'see the accounts:  .\auth.ps1 -Accounts'
+        Note "add it first:     gh auth login    (then: .\auth.ps1 -Account $Account)"
+        return $false
+    }
+    # The helper command. git runs a '!'-helper as
+    #     sh -c '<value> "$@"' '<value>' get
+    # - it APPENDS "$@" - so the value has to be a function that is then
+    # CALLED:
+    #     !f() { ...; }; f    ->  f get             OK
+    #     !if ...; fi         ->  if ...; fi get    SYNTAX ERROR
+    # The second form shipped in v2.9.0 and never worked: git failed with
+    # "syntax error near unexpected token `get'" (field case 2026-09-17).
+    # Fail CLOSED on purpose: with no token for that account the helper exits
+    # non-zero instead of handing out the ACTIVE account's token (an empty
+    # GH_TOKEN makes gh fall back to the active account = the wrong user).
+    # No double quotes anywhere (the value travels through cmd), forward
+    # slashes in the path (works in both the Git shell and cmd).
+    $ghExe = ''
+    $gc = Get-Command gh -ErrorAction SilentlyContinue
+    if ($gc -and $gc.Source) { $ghExe = [string]$gc.Source }
+    $ghFwd = if ($ghExe) { $ghExe -replace '\\', '/' } else { 'gh' }
+    $q = if ($ghExe) { "'" + $ghFwd + "'" } else { $ghFwd }
+    $pin = '!f() { T=$(' + $q + ' auth token -u ' + $Account + ') || return $false; GH_TOKEN=$T ' + $q + ' auth git-credential $@; }; f'
+
+    $resetHow = Reset-LocalHelperList
+    if (-not $resetHow) {
+        Bad 'could not put the empty (resetting) entry into the local helper list'
+        Note 'do it by hand and re-run -Account:'
+        Note '   git config --local --replace-all credential.helper ""'
+        return $false
+    }
+    $r2 = GitG @('config', '--local', '--add', 'credential.helper', $pin)
+    $listTxt = (GitG @('config', '--local', '--get-all', 'credential.helper')).text
+    if ($r2.code -ne 0 -or -not $listTxt.Contains("auth token -u $Account")) {
+        Bad "could not write the pin (exit $($r2.code))"
+        if ($r2.text) { Note "git said: $(Brief $r2.text 2)" }
+        Note ("local list now: " + (($listTxt -split "`r?`n") -join ' | '))
+        return $false
+    }
+    Ok "this clone now authenticates as '$Account' (empty reset via $resetHow + pin)"
+    Note 'no fallback is added after the pin on purpose: if that account loses its'
+    Note 'token the push FAILS instead of silently using the machine default'
+    $null = $changed.Add("credential.helper (local) pinned to gh account $Account")
+    $null = $notes.Add("account pin: $Account (reset via $resetHow)")
+    return $true
+}
+
 function Show-Accounts {
     $slug   = Get-RepoSlug
     $pinned = Get-PinnedAccount
@@ -548,56 +619,7 @@ if ($Account -or $Unpin) {
         if (-not $any) { Note 'this clone had no local pin - nothing to undo' }
         Note 'the machine default is back in charge here (other clones were never touched)'
     } else {
-        if (-not $ghVer) {
-            Bad 'gh is not installed - install it (winget install GitHub.cli), or store a PAT with -Setup -PromptToken'
-            exit 1
-        }
-        if (-not (Test-GhAccount $Account)) {
-            Bad "gh has no usable account '$Account' (not logged in, or no token)"
-            Note 'see the accounts:  .\auth.ps1 -Accounts'
-            Note "add it first:     gh auth login    (then: .\auth.ps1 -Account $Account)"
-            exit 1
-        }
-        # The helper command. git runs a '!'-helper as
-        #     sh -c '<value> "$@"' '<value>' get
-        # - it APPENDS "$@" - so the value has to be a function that is then
-        # CALLED:
-        #     !f() { ...; }; f    ->  f get             OK
-        #     !if ...; fi         ->  if ...; fi get    SYNTAX ERROR
-        # The second form shipped in v2.9.0 and never worked: git failed with
-        # "syntax error near unexpected token `get'" (field case 2026-09-17).
-        # Fail CLOSED on purpose: with no token for that account the helper exits
-        # non-zero instead of handing out the ACTIVE account's token (an empty
-        # GH_TOKEN makes gh fall back to the active account = the wrong user).
-        # No double quotes anywhere (the value travels through cmd), forward
-        # slashes in the path (works in both the Git shell and cmd).
-        $ghExe = ''
-        $gc = Get-Command gh -ErrorAction SilentlyContinue
-        if ($gc -and $gc.Source) { $ghExe = [string]$gc.Source }
-        $ghFwd = if ($ghExe) { $ghExe -replace '\\', '/' } else { 'gh' }
-        $q = if ($ghExe) { "'" + $ghFwd + "'" } else { $ghFwd }
-        $pin = '!f() { T=$(' + $q + ' auth token -u ' + $Account + ') || exit 1; GH_TOKEN=$T ' + $q + ' auth git-credential $@; }; f'
-
-        $resetHow = Reset-LocalHelperList
-        if (-not $resetHow) {
-            Bad 'could not put the empty (resetting) entry into the local helper list'
-            Note 'do it by hand and re-run -Account:'
-            Note '   git config --local --replace-all credential.helper ""'
-            exit 1
-        }
-        $r2 = GitG @('config', '--local', '--add', 'credential.helper', $pin)
-        $listTxt = (GitG @('config', '--local', '--get-all', 'credential.helper')).text
-        if ($r2.code -ne 0 -or -not $listTxt.Contains("auth token -u $Account")) {
-            Bad "could not write the pin (exit $($r2.code))"
-            if ($r2.text) { Note "git said: $(Brief $r2.text 2)" }
-            Note ("local list now: " + (($listTxt -split "`r?`n") -join ' | '))
-            exit 1
-        }
-        Ok "this clone now authenticates as '$Account' (empty reset via $resetHow + pin)"
-        Note 'no fallback is added after the pin on purpose: if that account loses its'
-        Note 'token the push FAILS instead of silently using the machine default'
-        $null = $changed.Add("credential.helper (local) pinned to gh account $Account")
-        $null = $notes.Add("account pin: $Account (reset via $resetHow)")
+        if (-not (Set-AccountPin $Account)) { exit 1 }
     }
     Say ''
     $probe = Invoke-CredProbe ''
@@ -867,7 +889,38 @@ if ($Verify -or ($Setup -and -not $SkipVerify)) {
                     Note 'the credential is valid, but THAT account cannot write to this repo.'
                     Note 'one machine can hold several logins - pick the one that owns the repo:'
                     Say ''
-                    Show-Accounts
+                    # ---- automatic repair (v2.9.3) --------------------------
+                    # Asking the human to run ".\auth.ps1 -Account <login>" was
+                    # the #1 way the hands-free loop stalled: the watcher can
+                    # pull and check, but it can never push the verdict back.
+                    # When exactly one gh login on this machine HAS write
+                    # access, pin this clone to it right here and re-probe.
+                    $fixAcc = ''
+                    if (-not $NoAutoFix) { $fixAcc = Find-PushAccount }
+                    if ($fixAcc) {
+                        Say ("== auto-fix: pinning THIS clone to the account that can push: {0}" -f $fixAcc) 'Cyan'
+                        Note 'other clones on this machine keep the machine default (local config only)'
+                        if (Set-AccountPin $fixAcc) {
+                            $r3 = GitG @('push', '--dry-run', $Remote, $spec)
+                            if ($r3.code -eq 0) {
+                                $pushState = 'passed'; $pushText = ''
+                                Ok ("git push --dry-run $Remote $spec : passed as '$fixAcc' (auto-fixed)")
+                            } elseif ($r3.text -match 'non-fast-forward|failed to push some refs|\[rejected\]|stale info') {
+                                $pushState = 'not-fast-forward'; $pushText = Brief $r3.text 3
+                                Ok ("auth is fixed ('$fixAcc'); the ref was simply not a fast-forward")
+                            } else {
+                                $pushText = Brief $r3.text 3
+                                Bad "still failing after the pin - $pushText"
+                                Show-Accounts
+                            }
+                        } else {
+                            Show-Accounts
+                        }
+                    } else {
+                        if ($NoAutoFix) { Note 'auto-fix disabled (-NoAutoFix)' }
+                        else { Note 'no gh login on this machine has write access - log in with the owner account:  gh auth login' }
+                        Show-Accounts
+                    }
                 }
             }
         } else {

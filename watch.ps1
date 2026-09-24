@@ -176,6 +176,11 @@ foreach ($cand in @((Join-Path $env:ProgramData 'git-sync'), (Join-Path $env:PUB
 }
 if (-not $hostDir) { $hostDir = $stateDir }
 $hostExe   = Join-Path $hostDir ('watchhost-' + $repoName + '.exe')
+# second zero-window route: a .vbs run by wscript.exe (GUI subsystem, nothing
+# to compile). It is the one that survives an antivirus that blocks/rewrites a
+# freshly compiled exe - field report 2026-09-24: Process.Start said
+# "%1 is not a valid Win32 application" for a 6144-byte watchhost exe.
+$hostVbs   = Join-Path $hostDir ('watchhost-' + $repoName + '.vbs')
 $lockFile  = Join-Path $env:TEMP ($taskName + '.lock')
 $loopFile  = Join-Path $stateDir ('watchloop-' + $repoName + '.pid')
 # one machine-wide ledger of watchers paused by -Focus (so -RestoreParked
@@ -456,6 +461,77 @@ function Test-WatchHost {
     return $false
 }
 
+function Get-WScriptExe {
+    # wscript.exe is a GUI-subsystem host: whatever it starts with window
+    # style 0 never shows a console. From a 32-bit process System32 is
+    # WOW64-redirected, so hop through SysNative like Get-PowerShellExe does.
+    $is32 = $false
+    try { $is32 = -not [Environment]::Is64BitProcess } catch { }
+    if ($is32 -and $env:WINDIR) {
+        $native = Join-Path $env:WINDIR 'SysNative\wscript.exe'
+        if (Test-Path -LiteralPath $native) { return $native }
+    }
+    if ($env:WINDIR) {
+        $sys = Join-Path $env:WINDIR 'System32\wscript.exe'
+        if (Test-Path -LiteralPath $sys) { return $sys }
+    }
+    return ''
+}
+
+function New-WatchVbs {
+    # write a launcher script (no compiler, no binary: antivirus-proof).
+    # Returns the path, or '' when it could not be written.
+    param([string]$Path, [string]$CommandLine, [string]$WorkDir)
+    $q = $CommandLine -replace '"', '""'
+    $w = $WorkDir -replace '"', '""'
+    $lines = @(
+        "' git-sync zero-window launcher - started by wscript.exe (no console)",
+        'Set sh = CreateObject("WScript.Shell")',
+        'On Error Resume Next',
+        ('sh.CurrentDirectory = "' + $w + '"'),
+        'On Error Goto 0',
+        ('sh.Run "' + $q + '", 0, False')
+    )
+    try {
+        # ANSI, not UTF-8: wscript reads a BOM-less .vbs in the system code
+        # page, so a CJK user name in one of the paths survives this way
+        [System.IO.File]::WriteAllText($Path, (($lines -join "`r`n") + "`r`n"), [System.Text.Encoding]::Default)
+        return $Path
+    } catch {
+        Add-Log "could not write the vbs launcher: $($_.Exception.Message)"
+        return ''
+    }
+}
+
+function Test-WatchVbs {
+    # same smoke test as the exe launcher: run a throwaway script through
+    # wscript and wait for the marker file
+    param([string]$PsExe)
+    $ws = Get-WScriptExe
+    if (-not $ws) { Add-Log 'wscript.exe not found - no vbs launcher on this machine'; return '' }
+    $marker = Join-Path $stateDir ('smokevbs-' + $repoName + '.txt')
+    Remove-Item -LiteralPath $marker -Force -ErrorAction SilentlyContinue
+    $smokePs = Join-Path $stateDir ('smokevbs-' + $repoName + '.ps1')
+    $line = "[System.IO.File]::WriteAllText('" + $marker + "', (Get-Date).ToString('o'))"
+    [System.IO.File]::WriteAllText($smokePs, $line, (New-Object System.Text.UTF8Encoding($true)))
+    $testVbs = Join-Path $stateDir ('smokevbs-' + $repoName + '.vbs')
+    $cmd = '"' + $PsExe + '" -NoProfile -ExecutionPolicy Bypass -NonInteractive -WindowStyle Hidden -File "' + $smokePs + '"'
+    if (-not (New-WatchVbs -Path $testVbs -CommandLine $cmd -WorkDir $repo)) { return '' }
+    try {
+        Start-Process -FilePath $ws -ArgumentList @('//B', '//Nologo', $testVbs) -WindowStyle Hidden | Out-Null
+    } catch {
+        Add-Log "vbs smoke test could not start wscript: $($_.Exception.Message)"
+        return ''
+    }
+    $deadline = (Get-Date).AddSeconds(45)
+    while ((Get-Date) -lt $deadline) {
+        if (Test-Path -LiteralPath $marker) { return $ws }
+        Start-Sleep -Milliseconds 700
+    }
+    Add-Log 'vbs smoke test FAILED (no marker) - wscript may be disabled by policy'
+    return ''
+}
+
 function Get-LoopPid {
     if (-not (Test-Path -LiteralPath $loopFile)) { return 0 }
     try {
@@ -545,6 +621,9 @@ function Get-TaskMode {
     if ($exec -match 'watchhost') {
         if ($argstr -match '-Loop') { return 'zero-window loop (launcher exe)' }
         return 'zero-window (launcher exe)'
+    }
+    if ($exec -match 'wscript' -or $argstr -match '\.vbs') {
+        return 'zero-window (vbs launcher)'
     }
     if ($exec -match 'powershell' -or $exec -match 'pwsh') {
         if ($argstr -match '-Loop') { return 'loop (one flash per logon)' }
@@ -1034,13 +1113,32 @@ if ($Register -or $Unregister) {
                     $exe = $hostPath
                     $arg = '"{0}" "{1}" "{2}" "{3}" -Loop' -f $psExe, $taskScript, $repo, $hostLog
                 } else {
-                    Write-Host "   [warn] launcher did not produce its marker - falling back to -Flash" -ForegroundColor Yellow
+                    Write-Host "   [warn] launcher exe did not produce its marker" -ForegroundColor Yellow
                     Write-Host "          host log (tail) - this says WHY:" -ForegroundColor DarkGray
                     Get-LogTail 15 | ForEach-Object { Write-Host ("            " + $_) -ForegroundColor DarkGray }
-                    Write-Host "          send the lines above to the agent if you want zero-window mode" -ForegroundColor DarkGray
                 }
             } else {
-                Write-Host "   [warn] could not compile the launcher - falling back to -Flash" -ForegroundColor Yellow
+                Write-Host "   [warn] could not compile the launcher exe" -ForegroundColor Yellow
+            }
+            if (-not $mode) {
+                # second zero-window route: wscript.exe + a .vbs (nothing is
+                # compiled, so an antivirus that blocks fresh binaries - the
+                # "%1 is not a valid Win32 application" case - cannot break it)
+                Write-Host "== trying the script launcher instead (wscript, nothing to compile) ..." -ForegroundColor Cyan
+                $wsExe = Test-WatchVbs -PsExe $psExe
+                if ($wsExe) {
+                    $cmdLine = '"' + $psExe + '" -NoProfile -ExecutionPolicy Bypass -NonInteractive -WindowStyle Hidden -File "' + $taskScript + '" -Loop'
+                    if (New-WatchVbs -Path $hostVbs -CommandLine $cmdLine -WorkDir $repo) {
+                        Write-Host "   script launcher works - the task will run with ZERO windows" -ForegroundColor Green
+                        Write-Host ("   launcher: {0}" -f $hostVbs)
+                        $mode = 'zero-window-vbs'
+                        $exe = $wsExe
+                        $arg = '//B //Nologo "{0}"' -f $hostVbs
+                    }
+                } else {
+                    Write-Host "   [warn] the script launcher did not work either - falling back to -Flash" -ForegroundColor Yellow
+                    Get-LogTail 5 | ForEach-Object { Write-Host ("            " + $_) -ForegroundColor DarkGray }
+                }
             }
         }
         if (-not $mode) {
@@ -1102,7 +1200,7 @@ if ($Register -or $Unregister) {
 
     Set-State @{ mode = $mode; interval = $Interval; repo = $repo; branch = $Branch; remote = $Remote;
                  skill = $skillVer; task = $taskName; git = $gitExe; bash = $bashExe; powershell = $psExe; proxy = $gitProxy;
-                 launcher = $(if ($mode -eq 'zero-window') { $exe } else { '' });
+                 launcher = $(if ($mode -like 'zero-window*') { $(if ($mode -eq 'zero-window-vbs') { $hostVbs } else { $exe }) } else { '' });
                  registered = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss') }
     Add-Log "registered: mode=$mode interval=${Interval}m keeper=${KeeperMin}m skill=v$skillVer git=$gitExe bash=$bashExe proxy=$gitProxy"
     Write-Host "== registered: $taskName (mode=$mode, loop every $Interval min, keeper tick every $KeeperMin min)" -ForegroundColor Green
@@ -1118,7 +1216,7 @@ if ($Register -or $Unregister) {
             Write-Host "== self-test FAILED: no heartbeat - this launch mode does not work here." -ForegroundColor Red
             Show-TaskDiagnostics
             Add-Log "self-test FAILED for mode=$mode"
-            if ($mode -eq 'zero-window') {
+            if ($mode -like 'zero-window*') {
                 Write-Host "   retrying automatically in the fallback mode (-Flash) ..." -ForegroundColor Yellow
                 Write-Host "   run:  .\watch.ps1 -Register -Flash" -ForegroundColor Yellow
             }
@@ -1131,7 +1229,7 @@ if ($Register -or $Unregister) {
 
     Write-Host ""
     Write-Host ("== mode: {0}" -f $mode) -ForegroundColor Green
-    if ($mode -eq 'zero-window') {
+    if ($mode -like 'zero-window*') {
         Write-Host "   the watcher runs as ONE windowless process per logon (no flash at all)" -ForegroundColor Gray
     } elseif ($mode -eq 'flash') {
         Write-Host "   the watcher runs as ONE process per logon: expect ONE brief flash" -ForegroundColor Gray

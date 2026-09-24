@@ -118,6 +118,17 @@ if ($Auto) {
     $auth = Join-Path $repo 'auth.ps1'
     if (Test-Path -LiteralPath $auth) {
         & $auth -Setup
+        # auth.ps1 exits 1 when a push would still need a human. Since v2.9.3
+        # it repairs the common 403 (wrong gh account for this repo) by itself,
+        # so reaching this branch means a real login is missing.
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host ""
+            Write-Host "   [warn] pushes are NOT silent yet - the watcher can pull and check," -ForegroundColor Yellow
+            Write-Host "          but it will not be able to push results back." -ForegroundColor Yellow
+            Write-Host "          do ONE login, then re-run this script:" -ForegroundColor Yellow
+            Write-Host "            gh auth login          # the account that owns the repo" -ForegroundColor Yellow
+            Write-Host "            .\auth.ps1 -Setup      # pins this clone to it automatically" -ForegroundColor Yellow
+        }
     } else {
         Write-Host "   (auth.ps1 missing - upgrade the skill)" -ForegroundColor Yellow
     }
