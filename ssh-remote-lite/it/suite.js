@@ -3,16 +3,21 @@
 // @vscode/test-electron loads THIS file as the "extension tests" module and
 // calls its exported run(). There is no mocha in that context unless the file
 // creates one itself - the bdd globals (describe/it) are NOT defined, which is
-// exactly how round 1 failed on the local box:
-//     ReferenceError: describe is not defined   (it/suite.js:13)
-// So the suite is plain async code: it throws on failure, resolves on success.
+// how round 1 failed ("ReferenceError: describe is not defined"). So the suite
+// is plain async code: it throws on failure, resolves on success.
 //
 // Proves: the extension activates + an SSH terminal really opens against the
-// in-repo SSH test server (system ssh client + a temporary ed25519 key) and
-// is still alive a few seconds later.
+// in-repo SSH test server (system ssh client + a temporary ed25519 key) and is
+// still alive a few seconds later.
+//
+// Round 2 failed with `SSH terminal exited early: {"code":255,"reason":2}` -
+// exit 255 is the ssh CLIENT giving up, and a VS Code terminal swallows its
+// stderr. So before the terminal case we run the SAME ssh command line
+// head-less with -v and print it: whatever the client complains about is then
+// in the round log instead of being invisible.
 const assert = require('assert');
+const cp = require('child_process');
 const fs = require('fs');
-const os = require('os');
 const path = require('path');
 const vscode = require('vscode');
 
@@ -34,15 +39,71 @@ async function withCase(name, fn) {
   }
 }
 
+// Windows OpenSSH REFUSES a private key whose ACL lets anyone else read it
+// ("UNPROTECTED PRIVATE KEY FILE" -> exit 255). Node's mode 0o600 does not
+// touch Windows ACLs, so do it with icacls. Also keep the key on an ASCII
+// path inside the repo: %TEMP% sits under a CJK user name on this machine.
+function writePrivateKey(dir, name, contents) {
+  fs.mkdirSync(dir, { recursive: true });
+  const file = path.join(dir, name);
+  fs.writeFileSync(file, contents, { mode: 0o600 });
+  if (process.platform === 'win32') {
+    const me = process.env.USERNAME || process.env.USER || '';
+    try {
+      cp.execFileSync('icacls', [file, '/inheritance:r'], { stdio: 'pipe' });
+      if (me) {
+        cp.execFileSync('icacls', [file, '/grant:r', `${me}:R`], { stdio: 'pipe' });
+      }
+      log(`key ACL locked down for ${me}`);
+    } catch (e) {
+      log(`icacls failed (continuing): ${e.message}`);
+    }
+  }
+  return file;
+}
+
+function runSshProbe(opts, extraArgs) {
+  // opts = the very TerminalOptions the extension would use, so the probe
+  // tests the real command line, not a hand-written copy of it
+  const args = [...opts.shellArgs, ...extraArgs];
+  log(`probe: "${opts.shellPath}" ${args.join(' ')}`);
+  const r = cp.spawnSync(opts.shellPath, args, {
+    encoding: 'utf8',
+    timeout: 30000,
+    windowsHide: true,
+  });
+  const out = `${r.stdout || ''}`.trim();
+  const err = `${r.stderr || ''}`.trim();
+  if (out) {
+    out.split(/\r?\n/).forEach((l) => log(`probe out| ${l}`));
+  }
+  if (err) {
+    err.split(/\r?\n/).slice(-40).forEach((l) => log(`probe err| ${l}`));
+  }
+  log(`probe exit: ${r.status} (error: ${r.error ? r.error.message : 'none'})`);
+  return { status: r.status, out, err };
+}
+
 async function run() {
   const harness = require('../out/test/harness.js');
+  const terminal = require('../out/terminal.js');
   const { utils } = require('ssh2');
 
   const kp = utils.generateKeyPairSync('ed25519');
   const server = await harness.startTestServer('testuser', 'testpass', kp.public);
-  const keyFile = path.join(os.tmpdir(), 'ssh_remote_lite_test_key');
-  fs.writeFileSync(keyFile, kp.private, { mode: 0o600 });
+  const keyFile = writePrivateKey(
+    path.join(__dirname, '..', '.vscode-test', 'it'),
+    'it_key',
+    kp.private
+  );
   log(`test ssh server on 127.0.0.1:${server.port}, key ${keyFile}`);
+
+  const cfg = {
+    host: '127.0.0.1',
+    port: server.port,
+    username: 'testuser',
+    privateKeyPath: keyFile,
+  };
 
   let term;
   try {
@@ -53,13 +114,29 @@ async function run() {
       assert.ok(ext.isActive, 'extension did not activate');
     });
 
+    await withCase('system ssh can authenticate with the extension command line', async () => {
+      const opts = terminal.sshTerminalOptions(cfg);
+      const probe = runSshProbe(opts, [
+        '-v',
+        '-o',
+        'BatchMode=yes',
+        '-o',
+        'IdentitiesOnly=yes',
+        'echo IT_SSH_OK',
+      ]);
+      assert.strictEqual(
+        probe.status,
+        0,
+        `ssh exited ${probe.status} - see the "probe err|" lines above for the reason`
+      );
+      assert.ok(
+        /EXEC:/.test(probe.out),
+        `the test server did not answer the exec request: ${probe.out}`
+      );
+    });
+
     await withCase('opens an SSH terminal that stays alive', async () => {
-      term = await vscode.commands.executeCommand('sshRemoteLite._openTestTerminal', {
-        host: '127.0.0.1',
-        port: server.port,
-        username: 'testuser',
-        privateKeyPath: keyFile,
-      });
+      term = await vscode.commands.executeCommand('sshRemoteLite._openTestTerminal', cfg);
       assert.ok(term, 'command returned no terminal');
       assert.ok(String(term.name).startsWith('SSH:'), `unexpected terminal name: ${term.name}`);
       assert.ok(
