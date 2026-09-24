@@ -1,9 +1,9 @@
 {
-  "round": 16,
-  "arena_state": "awaiting_check",
-  "local_state": "pending",
-  "arena_updated": "2026-09-24 07:34:43",
-  "local_updated": null,
-  "host": "",
-  "note": "round 16: fixed profile args + socket-based reachability; expect a correct 10.10.5.210 profile and a real-server verdict"
+    "round":  16,
+    "arena_state":  "awaiting_check",
+    "local_state":  "passed",
+    "arena_updated":  "2026-09-24 07:34:43",
+    "local_updated":  "2026-09-24 15:40:16",
+    "host":  "LAPTOP-R77M5D6M",
+    "note":  "round 16: fixed profile args + socket-based reachability; expect a correct 10.10.5.210 profile and a real-server verdict"
 }
