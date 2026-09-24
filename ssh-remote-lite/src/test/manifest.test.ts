@@ -41,3 +41,31 @@ test('defaultHost 配置项存在', () => {
   const props = pkg.contributes?.configuration?.properties ?? {};
   assert.ok(props['sshRemoteLite.defaultHost'], '缺少 sshRemoteLite.defaultHost 设置项');
 });
+
+// 静态 profile(不依赖插件激活的那条路)的形状
+import { staticProfileEntry, staticProfileName, buildSshArgs } from '../profile';
+
+test('静态 profile: 名字带主机, 命令行带端口/密钥', () => {
+  const cfg = { host: '10.10.5.210', port: 2222, username: 'u1', privateKeyPath: 'C:\\k\\id' };
+  assert.equal(staticProfileName(cfg), 'SSH Remote Lite (u1@10.10.5.210)');
+  const e = staticProfileEntry(cfg, 'C:\\ssh.exe');
+  assert.equal(e.path, 'C:\\ssh.exe');
+  assert.deepEqual(e.args, [
+    '-p',
+    '2222',
+    '-o',
+    'StrictHostKeyChecking=accept-new',
+    '-o',
+    'IdentitiesOnly=yes',
+    '-i',
+    'C:\\k\\id',
+    'u1@10.10.5.210',
+  ]);
+  assert.equal(e.overrideName, true);
+});
+
+test('没有私钥时不加 -i', () => {
+  const args = buildSshArgs({ host: 'h', username: 'u' });
+  assert.ok(!args.includes('-i'), `不应出现 -i: ${args.join(' ')}`);
+  assert.equal(args[args.length - 1], 'u@h');
+});

@@ -79,6 +79,29 @@ if ($codeCmd -and $vsix) {
     Mark $false 'vsix install' 'missing code CLI or vsix file'
 }
 
+# ---- 3b. the same vsix into Antigravity (its own extensions dir + own CLI).
+# The user hit "No terminal profile provider registered for id ..." because the
+# IDE they clicked in still had an older build installed (2026-09-24).
+$agCmd = $null
+foreach ($c in @('antigravity', 'antigravity.cmd')) {
+    if (Get-Command $c -ErrorAction SilentlyContinue) { $agCmd = $c; break }
+}
+if (-not $agCmd) {
+    foreach ($p in @(
+        "$env:LOCALAPPDATA\Programs\Antigravity\bin\antigravity.cmd",
+        "$env:PROGRAMFILES\Antigravity\bin\antigravity.cmd")) {
+        if (Test-Path -LiteralPath $p) { $agCmd = $p; break }
+    }
+}
+if ($agCmd -and $vsix) {
+    & $agCmd --install-extension $vsix.FullName --force 2>&1 | Out-String | Write-Output
+    Mark ($LASTEXITCODE -eq 0) ('vsix installed into Antigravity - ' + $vsix.Name)
+    $agList = & $agCmd --list-extensions --show-versions 2>&1 | Out-String
+    Mark ($extId -and $agList -like "*$extId*") ('extension listed in Antigravity - ' + $extId)
+} else {
+    Write-Output '[SKIP] Antigravity CLI not found on PATH - install the vsix there by hand if you use it'
+}
+
 # ---- 4. node unit/e2e tests, 5. real-VSCode integration test (opens SSH terminal)
 $nodeCmd = Get-Command node -ErrorAction SilentlyContinue
 if ($nodeCmd) {
@@ -88,7 +111,7 @@ if ($nodeCmd) {
         npm install --no-audit --no-fund 2>&1 | Out-String | Write-Output
     }
     npm test 2>&1 | Out-String | Write-Output
-    Mark ($LASTEXITCODE -eq 0) 'npm test (unit + ssh e2e + ssh CLI + autologin/manifest, 22 cases)'
+    Mark ($LASTEXITCODE -eq 0) 'npm test (unit + e2e + ssh CLI + autologin + profile contract, 24 cases)'
     npm run it 2>&1 | Out-String | Write-Output
     Mark ($LASTEXITCODE -eq 0) 'npm run it (real VS Code activates ext + SSH terminal opens and stays alive)'
     Pop-Location

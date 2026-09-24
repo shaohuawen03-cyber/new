@@ -4,7 +4,8 @@ import * as os from 'os';
 import * as path from 'path';
 import { SshFileSystemProvider } from './fs';
 import { sshTerminalOptions, openSshTerminal } from './terminal';
-import { PROFILE_ID, PROFILE_TITLE } from './profile';
+import { PROFILE_ID, staticProfileEntry, staticProfileName } from './profile';
+import { findSshExecutable } from './terminal';
 import { ensurePasswordlessLogin } from './autologin';
 import {
   getConfigForAuthority,
@@ -236,29 +237,46 @@ export function activate(context: vscode.ExtensionContext): void {
   // 一键把当前 ssh:// 主机设为默认终端: Agent/反重力 的 shell 命令将跑在远端
   context.subscriptions.push(
     vscode.commands.registerCommand('sshRemoteLite.setDefaultTerminal', async () => {
-      const cfg = resolveTargetConfig();
-      if (!cfg) {
+      const base = resolveTargetConfig();
+      if (!base) {
         vscode.window.showWarningMessage(
           '还没有远程主机: 先运行 "SSH Remote Lite: 一键配置远程主机"'
         );
         return;
       }
-      // 必须是 package.json 里 contributes.terminal.profiles 的 title,
-      // 写成 "SSH: user@host" 这种名字 VS Code 找不到 profile, 于是继续用
-      // PowerShell —— 这正是 v0.0.6 "终端还是 Windows 的" 的原因。
-      const name = PROFILE_TITLE;
+      // 有密码没密钥时先把免密配好, 这样写进设置的命令行是 ssh -i <key>,
+      // 默认终端一开就直接进远端, 不会停在密码提示上
+      const res = await ensurePasswordlessLogin(base);
+      const cfg = res.cfg;
       const key =
         process.platform === 'win32'
           ? 'windows'
           : process.platform === 'darwin'
           ? 'osx'
           : 'linux';
-      await vscode.workspace
-        .getConfiguration('terminal.integrated')
-        .update(`defaultProfile.${key}`, name, vscode.ConfigurationTarget.Global);
+
+      // 关键: 写一条"普通" profile(path + args), 不依赖插件是否被激活。
+      // 只靠 contributes.terminal.profiles 时, 插件没激活的那一刻 IDE 会报
+      //   No terminal profile provider registered for id "sshRemoteLite.terminal"
+      // 然后退回本地 shell(用户实测 2026-09-24)。
+      const name = staticProfileName(cfg);
+      const entry = staticProfileEntry(cfg, findSshExecutable());
+      const termConf = vscode.workspace.getConfiguration('terminal.integrated');
+      const profiles = { ...(termConf.get<Record<string, unknown>>(`profiles.${key}`) ?? {}) };
+      profiles[name] = entry;
+      await termConf.update(`profiles.${key}`, profiles, vscode.ConfigurationTarget.Global);
+      await termConf.update(`defaultProfile.${key}`, name, vscode.ConfigurationTarget.Global);
       vscode.window.showInformationMessage(
-        `默认终端已设为 "${name}" (${makeAuthority(cfg)}),新建终端/Agent 命令都会跑在远端`
+        `默认终端已设为 "${name}"${res.deployed ? ' (已配好免密)' : ''} - 新建终端/Agent 命令都会跑在远端`
       );
+    })
+  );
+
+  // 隐藏命令(集成测试用): 返回本次写进设置的 profile 名字
+  context.subscriptions.push(
+    vscode.commands.registerCommand('sshRemoteLite._staticProfileName', () => {
+      const cfg = resolveTargetConfig();
+      return cfg ? staticProfileName(cfg) : undefined;
     })
   );
 

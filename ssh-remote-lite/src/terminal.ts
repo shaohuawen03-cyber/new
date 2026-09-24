@@ -10,6 +10,7 @@ import { HostConfig } from './core';
 
 /** 终端下拉菜单里显示的 profile 名称(定义在 profile.ts, 与 package.json 对齐) */
 export { PROFILE_ID, PROFILE_TITLE } from './profile';
+import { buildSshArgs } from './profile';
 
 export function findSshExecutable(): string {
   const cfgPath = vscode.workspace
@@ -35,20 +36,10 @@ export function findSshExecutable(): string {
 
 export function sshTerminalOptions(cfg: HostConfig): vscode.TerminalOptions {
   const authority = `${cfg.username ?? 'root'}@${cfg.host}:${cfg.port ?? 22}`;
-  const args: string[] = [
-    '-p',
-    String(cfg.port ?? 22),
-    '-o',
-    'StrictHostKeyChecking=accept-new',
-  ];
-  if (cfg.privateKeyPath) {
-    args.push('-o', 'IdentitiesOnly=yes', '-i', cfg.privateKeyPath);
-  }
-  args.push(`${cfg.username ?? 'root'}@${cfg.host}`);
   return {
     name: `SSH: ${authority}`,
     shellPath: findSshExecutable(),
-    shellArgs: args,
+    shellArgs: buildSshArgs(cfg),
   };
 }
 

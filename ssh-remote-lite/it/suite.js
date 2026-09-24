@@ -211,14 +211,41 @@ async function run() {
       await vscode.commands.executeCommand('sshRemoteLite.setDefaultTerminal');
       const key =
         process.platform === 'win32' ? 'windows' : process.platform === 'darwin' ? 'osx' : 'linux';
-      const def = vscode.workspace
-        .getConfiguration('terminal.integrated')
-        .get(`defaultProfile.${key}`);
+      const expected = await vscode.commands.executeCommand('sshRemoteLite._staticProfileName');
+      const termConf = vscode.workspace.getConfiguration('terminal.integrated');
+      const def = termConf.get(`defaultProfile.${key}`);
       assert.strictEqual(
         def,
-        'SSH Remote Lite',
+        expected,
         `default terminal profile is "${def}" - new terminals would still be the local shell`
       );
+      // the profile must be a PLAIN path+args entry: it has to work even when
+      // the extension is not activated (that is the
+      // "No terminal profile provider registered for id ..." failure)
+      const written = (termConf.get(`profiles.${key}`) || {})[expected];
+      assert.ok(written, `profiles.${key} has no entry named "${expected}"`);
+      assert.ok(written.path, 'the profile entry has no path (ssh executable)');
+      assert.ok(
+        written.args.join(' ').includes(String(server.port)),
+        `profile args do not target the test server: ${JSON.stringify(written.args)}`
+      );
+
+      // and it really opens: build a terminal straight from the settings entry
+      const fromSettings = vscode.window.createTerminal({
+        name: expected,
+        shellPath: written.path,
+        shellArgs: written.args,
+      });
+      try {
+        await new Promise((r) => setTimeout(r, 5000));
+        assert.strictEqual(
+          fromSettings.exitStatus,
+          undefined,
+          `the settings-based profile exited early: ${JSON.stringify(fromSettings.exitStatus)}`
+        );
+      } finally {
+        fromSettings.dispose();
+      }
     });
 
     await withCase('a password-only host is turned passwordless and its terminal stays alive', async () => {
