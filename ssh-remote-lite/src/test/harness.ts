@@ -249,7 +249,11 @@ export interface TestServer {
   close(): Promise<void>;
 }
 
-export function startTestServer(user = 'testuser', password = 'testpass'): Promise<TestServer> {
+export function startTestServer(
+  user = 'testuser',
+  password = 'testpass',
+  authorizedPubKey?: string
+): Promise<TestServer> {
   const keys = utils.generateKeyPairSync('ed25519');
   const mem = new MemFs();
 
@@ -257,6 +261,16 @@ export function startTestServer(user = 'testuser', password = 'testpass'): Promi
     client.on('authentication', (ctx) => {
       if (ctx.method === 'password' && ctx.username === user && ctx.password === password) {
         return ctx.accept();
+      }
+      if (ctx.method === 'publickey' && authorizedPubKey && ctx.username === user) {
+        const parsed = utils.parseKey(authorizedPubKey);
+        const pubBuf =
+          parsed && !(parsed instanceof Error) && typeof (parsed as any).getPublicSSH === 'function'
+            ? (parsed as any).getPublicSSH()
+            : null;
+        if (pubBuf && (ctx.key as unknown as Buffer).equals(pubBuf)) {
+          return ctx.accept();
+        }
       }
       return ctx.reject();
     });

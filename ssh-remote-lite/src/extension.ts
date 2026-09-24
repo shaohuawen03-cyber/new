@@ -86,6 +86,14 @@ export function activate(context: vscode.ExtensionContext): void {
     })
   );
 
+  // 隐藏命令(集成测试用): 按给定配置开一个 SSH 终端并返回 Terminal 对象
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      'sshRemoteLite._openTestTerminal',
+      async (cfg: HostConfig) => openSshTerminal(cfg)
+    )
+  );
+
   // 一键部署免密登录: 把本机公钥写入远端 authorized_keys(走插件 SSH 通道, 密码在弹窗输入)
   context.subscriptions.push(
     vscode.commands.registerCommand('sshRemoteLite.uploadPublicKey', async () => {

@@ -2,8 +2,8 @@
   "name": "ssh-remote-lite",
   "displayName": "SSH Remote Lite",
   "description": "轻量级 SSH 远程开发:不依赖远端 vscode-server,用 ssh:// 文件系统浏览/编辑远端文件 + 交互式 SSH 终端。适用于跑不了新版 vscode-server 的老服务器(CentOS 7 / glibc < 2.28 等)。",
-  "version": "0.0.5",
-  "publisher": "your-name",
+  "version": "0.0.6",
+  "publisher": "shaohuawen03",
   "license": "MIT",
   "engines": {
     "vscode": "^1.75.0"
@@ -61,7 +61,8 @@
   "scripts": {
     "compile": "tsc -p .",
     "watch": "tsc -w -p .",
-    "test": "npm run compile && node --test \"out/test/*.test.js\""
+    "test": "npm run compile && node --test \"out/test/*.test.js\"",
+    "it": "node it/runTest.js"
   },
   "dependencies": {
     "ssh2": "^1.16.0"
@@ -70,6 +71,8 @@
     "@types/node": "^20.19.43",
     "@types/ssh2": "^1.15.6",
     "@types/vscode": "~1.75.0",
-    "typescript": "^5.4.0"
+    "typescript": "^5.4.0",
+    "@vscode/test-electron": "^2.4.1",
+    "mocha": "^10.4.0"
   }
 }
