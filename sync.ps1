@@ -153,9 +153,36 @@ if ($dirty.Count -gt 0) {
 }
 
 $fetch = Git @('fetch', $Remote)
+if ($fetch.code -ne 0 -and $fetch.text -match 'cannot lock ref|unable to update local ref|is at .* but expected|Unable to create .*\.lock') {
+    # A remote-tracking ref that exists BOTH loose and packed (or a leftover
+    # .lock from a fetch that was killed - e.g. the machine rebooted while the
+    # watcher was polling) makes every later fetch fail with
+    #   cannot lock ref 'refs/remotes/origin/<branch>': is at A but expected B
+    # The watcher then can neither pull new code nor be repaired by it, so it
+    # has to heal itself here (field report 2026-09-24, after a reboot).
+    Write-Host "== stale remote-tracking ref detected - repairing ..." -ForegroundColor Yellow
+    $gitDirRel = (Git @('rev-parse', '--git-dir')).text.Trim()
+    $gitDir = if ([System.IO.Path]::IsPathRooted($gitDirRel)) { $gitDirRel } else { Join-Path $repo $gitDirRel }
+    $refRoot = Join-Path $gitDir 'refs\remotes'
+    if (Test-Path -LiteralPath $refRoot) {
+        Get-ChildItem -LiteralPath $refRoot -Recurse -Filter '*.lock' -ErrorAction SilentlyContinue |
+            ForEach-Object {
+                Write-Host ("   removing stale lock: " + $_.FullName) -ForegroundColor DarkGray
+                Remove-Item -LiteralPath $_.FullName -Force -ErrorAction SilentlyContinue
+            }
+    }
+    $null = Git @('update-ref', '-d', "refs/remotes/$Remote/$Branch")
+    $null = Git @('remote', 'prune', $Remote)
+    $fetch = Git @('fetch', $Remote)
+    if ($fetch.code -eq 0) {
+        Write-Host "   repaired: fetch works again" -ForegroundColor Green
+    }
+}
 if ($fetch.code -ne 0) {
     Write-Host "[ERROR] git fetch failed (network / proxy?)." -ForegroundColor Red
     if ($fetch.text) { Write-Host $fetch.text -ForegroundColor DarkGray }
+    Write-Host "        if it says 'cannot lock ref', run once:" -ForegroundColor Yellow
+    Write-Host ("        git update-ref -d refs/remotes/$Remote/$Branch ; git fetch $Remote") -ForegroundColor Yellow
     exit 1
 }
 
