@@ -1,9 +1,9 @@
 {
-  "round": 19,
-  "arena_state": "awaiting_check",
-  "local_state": "pending",
-  "arena_updated": "2026-09-24 08:33:17",
-  "local_updated": null,
-  "host": "",
-  "note": "round 19: v0.0.14 - connection cleanup + it:installed can now install the vsix (shell spawn on Windows)"
+    "round":  19,
+    "arena_state":  "awaiting_check",
+    "local_state":  "passed",
+    "arena_updated":  "2026-09-24 08:33:17",
+    "local_updated":  "2026-09-24 16:37:53",
+    "host":  "LAPTOP-R77M5D6M",
+    "note":  "round 19: v0.0.14 - connection cleanup + it:installed can now install the vsix (shell spawn on Windows)"
 }
