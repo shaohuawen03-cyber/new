@@ -108,7 +108,7 @@ $ahead = Get-AheadSubjects
 if ($ahead.Count -gt 0) {
     $onlyArtifacts = $true
     foreach ($subj in $ahead) {
-        if ($subj -notmatch '^(check: round|watch: local check artifacts)') { $onlyArtifacts = $false; break }
+        if ($subj -notmatch '^(check: round|watch: local check artifacts|local: auto)') { $onlyArtifacts = $false; break }
     }
     if ($onlyArtifacts) {
         Write-Host ("== {0} local commit(s) are only watcher verdicts - realigning with $remoteRef (files are kept)" -f $ahead.Count) -ForegroundColor Cyan
@@ -162,10 +162,44 @@ if ($fetch.code -ne 0) {
 $null = Git @('checkout', $Branch) -Show
 $pull = Git @('pull', '--ff-only', $Remote, $Branch) -Show
 if ($pull.code -ne 0) {
-    Write-Host "[ERROR] pull failed. Your branch has local commits that conflict." -ForegroundColor Red
-    Write-Host "        Diagnose: git status ; git stash list ; git log --oneline -5" -ForegroundColor Yellow
-    Write-Host "        Hard reset (loses local commits): git reset --hard $remoteRef" -ForegroundColor Yellow
-    exit 1
+    # DIVERGED: local commits the remote does not have (watcher verdicts, a
+    # hands-free auto_push, anything the user committed) + new commits on the
+    # remote. --ff-only cannot do this, and stopping here used to freeze the
+    # whole loop: it could no longer pull the fix NOR push its results
+    # (field report 2026-09-24, "4 and 1 different commits"). Rebase instead:
+    # the local commits are replayed on top of the remote and pushed later.
+    Write-Host "== branches diverged - rebasing the local commit(s) onto $remoteRef ..." -ForegroundColor Cyan
+    $rb = Git @('-c', 'rebase.autoStash=true', 'rebase', $remoteRef) -Show
+    if ($rb.code -ne 0) {
+        $null = Git @('rebase', '--abort')
+        # A rebase only conflicts here when both sides changed the same file.
+        # Watcher artifacts (results/) are reproducible, so drop the local
+        # COMMITS - never the files: reset keeps the worktree, the next round
+        # commits and pushes them again on top of the remote.
+        $onlyResults = $true
+        $files = (Git @('diff', '--name-only', $remoteRef + '...HEAD')).text
+        foreach ($f in @($files -split "`r?`n" | Where-Object { $_ -match '\S' })) {
+            if ($f -notmatch '^results/') { $onlyResults = $false; break }
+        }
+        if ($onlyResults) {
+            Write-Host "== rebase conflicted on watcher artifacts only - realigning with $remoteRef (files kept)" -ForegroundColor Yellow
+            $null = Git @('reset', '--mixed', $remoteRef)
+            $null = Git @('checkout', '--', 'results')
+            $pull2 = Git @('pull', '--ff-only', $Remote, $Branch) -Show
+            if ($pull2.code -ne 0) {
+                Write-Host "[ERROR] still cannot pull after the realign." -ForegroundColor Red
+                exit 1
+            }
+        } else {
+            Write-Host "[ERROR] the rebase conflicts on files that are NOT watcher artifacts." -ForegroundColor Red
+            Write-Host "        Nothing was lost - inspect with: git status ; git log --oneline -5" -ForegroundColor Yellow
+            Write-Host "        Then: git rebase $remoteRef   (resolve, git rebase --continue)" -ForegroundColor Yellow
+            Write-Host "        Or drop the local commits: git reset --hard $remoteRef" -ForegroundColor Yellow
+            exit 1
+        }
+    } else {
+        Write-Host "== rebase done - the local commit(s) now sit on top of the remote" -ForegroundColor Green
+    }
 }
 
 Write-Host ""
