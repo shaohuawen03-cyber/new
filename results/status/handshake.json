@@ -1,9 +1,9 @@
 {
-  "round": 18,
-  "arena_state": "awaiting_check",
-  "local_state": "pending",
-  "arena_updated": "2026-09-24 08:01:56",
-  "local_updated": null,
-  "host": "",
-  "note": "round 18: v0.0.13 - reproduce the 'ssh:// FS provider unavailable' with the PACKAGED vsix (new it:installed suite) + PAM keyboard-interactive password fix"
+    "round":  18,
+    "arena_state":  "awaiting_check",
+    "local_state":  "failed",
+    "arena_updated":  "2026-09-24 08:01:56",
+    "local_updated":  "2026-09-24 16:29:31",
+    "host":  "LAPTOP-R77M5D6M",
+    "note":  "round 18: v0.0.13 - reproduce the \u0027ssh:// FS provider unavailable\u0027 with the PACKAGED vsix (new it:installed suite) + PAM keyboard-interactive password fix"
 }
