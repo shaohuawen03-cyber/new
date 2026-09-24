@@ -18,6 +18,19 @@ export interface LocalKeyPair {
 }
 
 /** Windows OpenSSH 拒绝"别人也能读"的私钥(bad permissions), node 的 mode 不管 ACL */
+/** 当前用户的 SID(ASCII, 不受中文用户名/代码页影响) */
+export function currentUserSid(): string {
+  try {
+    const out = execFileSync('whoami', ['/user', '/fo', 'csv', '/nh'], {
+      stdio: ['ignore', 'pipe', 'pipe'],
+    }).toString();
+    const m = /S-1-[0-9-]+/.exec(out);
+    return m ? m[0] : '';
+  } catch {
+    return '';
+  }
+}
+
 export function hardenKeyFile(file: string): void {
   try {
     fs.chmodSync(file, 0o600);
@@ -27,7 +40,14 @@ export function hardenKeyFile(file: string): void {
   if (process.platform !== 'win32') {
     return;
   }
-  const me = process.env.USERNAME || process.env.USER || '';
+  // 为什么用 SID 而不是用户名: 中文用户名经 icacls 的代码页常常匹配失败,
+  // 结果文件一个 ACE 都不剩 -> ssh 读不到内容, 报 "Load key: invalid format"。
+  // 为什么不用 OWNER RIGHTS(*S-1-3-4): ssh 不认它是属主, 会判 "bad permissions"。
+  const sid = currentUserSid();
+  const principal = sid || process.env.USERNAME || process.env.USER || '';
+  if (!principal) {
+    return;
+  }
   const before = (() => {
     try {
       return fs.readFileSync(file).length;
@@ -36,33 +56,19 @@ export function hardenKeyFile(file: string): void {
     }
   })();
   try {
-    execFileSync('icacls', [file, '/inheritance:r'], { stdio: 'pipe' });
-    // grant by well-known SID first: a non-ASCII user name (e.g. Chinese) can
-    // fail to match through icacls' code page, and then the file ends up with
-    // NO ACE at all - ssh reads nothing and reports "invalid format".
-    try {
-      execFileSync('icacls', [file, '/grant:r', '*S-1-3-4:R'], { stdio: 'pipe' });
-    } catch {
-      /* OWNER RIGHTS not supported here - fall through to the name */
-    }
-    if (me) {
-      try {
-        execFileSync('icacls', [file, '/grant', `${me}:R`], { stdio: 'pipe' });
-      } catch {
-        /* ignore */
-      }
-    }
+    execFileSync('icacls', [file, '/inheritance:r', '/grant:r', `${principal}:F`], {
+      stdio: 'pipe',
+    });
   } catch {
-    /* ignore */
+    /* ignore - 下面的自检会兜底 */
   }
-  // verify we can still read it; if not, undo the lockdown rather than leave
-  // an unusable key behind
+  let ok = false;
   try {
-    const after = fs.readFileSync(file).length;
-    if (after !== before) {
-      throw new Error('size changed');
-    }
+    ok = fs.readFileSync(file).length === before && before > 0;
   } catch {
+    ok = false;
+  }
+  if (!ok) {
     try {
       execFileSync('icacls', [file, '/reset'], { stdio: 'pipe' });
     } catch {

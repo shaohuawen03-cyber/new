@@ -24,12 +24,23 @@ function lockDownKey(file: string): void {
   if (process.platform !== 'win32') {
     return;
   }
-  const me = process.env.USERNAME || process.env.USER || '';
+  // 用 SID: 中文用户名经 icacls 可能匹配失败, 文件会变成"谁都读不了"
+  let principal = process.env.USERNAME || process.env.USER || '';
   try {
-    execFileSync('icacls', [file, '/inheritance:r'], { stdio: 'pipe' });
-    if (me) {
-      execFileSync('icacls', [file, '/grant:r', `${me}:R`], { stdio: 'pipe' });
+    const who = execFileSync('whoami', ['/user', '/fo', 'csv', '/nh'], {
+      stdio: ['ignore', 'pipe', 'pipe'],
+    }).toString();
+    const m = /S-1-[0-9-]+/.exec(who);
+    if (m) {
+      principal = m[0];
     }
+  } catch {
+    /* keep the name */
+  }
+  try {
+    execFileSync('icacls', [file, '/inheritance:r', '/grant:r', `${principal}:F`], {
+      stdio: 'pipe',
+    });
   } catch {
     /* ignore - the assertion below will report the real ssh error */
   }
@@ -50,9 +61,7 @@ after(async () => {
   try {
     if (process.platform === 'win32' && (process.env.USERNAME || process.env.USER)) {
       try {
-        execFileSync('icacls', [keyFile, '/grant', `${process.env.USERNAME || process.env.USER}:F`], {
-          stdio: 'pipe',
-        });
+        execFileSync('icacls', [keyFile, '/reset'], { stdio: 'pipe' });
       } catch {
         /* ignore */
       }

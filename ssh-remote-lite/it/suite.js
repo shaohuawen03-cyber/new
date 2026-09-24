@@ -73,27 +73,30 @@ function writePrivateKey(dir, contents) {
     const file = path.join(dir, `it_key_${process.pid}_${Date.now()}`);
     fs.writeFileSync(file, contents, { mode: 0o600 });
     if (process.platform === 'win32') {
+      // by SID: a Chinese user name can fail to match through icacls' code
+      // page and leave the file with no ACE at all ("Load key: invalid
+      // format", round 11). OWNER RIGHTS (*S-1-3-4) is not accepted by ssh
+      // either ("bad permissions", round 12) - it wants the real owner.
+      let principal = me;
       try {
-        cp.execFileSync('icacls', [file, '/inheritance:r'], { stdio: 'pipe' });
-        try {
-          cp.execFileSync('icacls', [file, '/grant:r', '*S-1-3-4:R'], { stdio: 'pipe' });
-        } catch (e) {
-          /* OWNER RIGHTS unsupported - try the name below */
+        const who = cp
+          .execFileSync('whoami', ['/user', '/fo', 'csv', '/nh'], { stdio: ['ignore', 'pipe', 'pipe'] })
+          .toString();
+        const m = /S-1-[0-9-]+/.exec(who);
+        if (m) {
+          principal = m[0];
         }
-        if (me) {
-          try {
-            cp.execFileSync('icacls', [file, '/grant', `${me}:R`], { stdio: 'pipe' });
-          } catch (e) {
-            /* ignore */
-          }
-        }
-        log(`key ACL locked down (owner rights${me ? ' + ' + me : ''})`);
+      } catch (e) {
+        /* keep the name */
+      }
+      try {
+        cp.execFileSync('icacls', [file, '/inheritance:r', '/grant:r', `${principal}:F`], {
+          stdio: 'pipe',
+        });
+        log(`key ACL locked down for ${principal}`);
       } catch (e) {
         log(`icacls failed (continuing): ${e.message}`);
       }
-      // A Chinese user name can make the grant miss, leaving the file with no
-      // ACE at all: ssh then reads nothing and says `Load key: invalid format`
-      // (round 11). Prove the file is still readable, else undo the lockdown.
       let readable = false;
       try {
         readable = fs.readFileSync(file, 'utf8').includes('PRIVATE KEY');
