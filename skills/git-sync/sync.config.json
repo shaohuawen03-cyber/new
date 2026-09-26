@@ -30,7 +30,7 @@
   "receipt_history": "results/sync/history",
   "hardware_dir": "results/hardware",
   "handshake": "results/status/handshake.json",
-  "check_cmd": "powershell -NoProfile -ExecutionPolicy Bypass -File code/local_check.ps1",
+  "check_cmd": "bash code/local_check.sh",
   "check_timeout_min": 30,
   "lock_stale_min": 45,
   "hands_free": true,
